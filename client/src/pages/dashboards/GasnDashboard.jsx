@@ -958,6 +958,7 @@
 
 // App.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import "chart.js/auto";
 import Chart from 'chart.js/auto';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api.js';
