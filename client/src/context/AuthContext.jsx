@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
       setSocket(null);
       return;
     }
-    const s = io('/', {
+    const s = io(import.meta.env.VITE_SOCKET_URL, {
       path: '/socket.io',
       auth: { token },
       transports: ['websocket', 'polling'],
