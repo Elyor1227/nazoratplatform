@@ -1746,110 +1746,110 @@ const ApplicationsPage = () => {
     setCurrentStep(1);
   };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div>
-            <h3 className="text-sm font-semibold text-white">1-босқич: Объектни рўйхатдан ўтказиш учун ариза юбориш</h3>
-            <div className="mt-3 space-y-3">
-              <input
-                name="name"
-                placeholder="Объект номи"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
-              />
-              <input
-                name="address"
-                placeholder="Манзил"
-                value={formData.address}
-                onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
-              />
-              <input
-                name="contractor"
-                placeholder="Пудратчи корхона"
-                value={formData.contractor}
-                onChange={handleInputChange}
-                className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
-              />
-            </div>
-          </div>
-        );
-      case 2:
-        return (
-          <div>
-            <h3 className="text-sm font-semibold text-white">2-босқич: Лойиха-смета ҳужжатларини ПДФ шаклида юклаш</h3>
-            <div className="mt-3">
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => handleFileChange(e, 'step2File')}
-                className="w-full text-white text-sm"
-              />
-              {formData.step2File && <p className="text-xs text-green-400 mt-1">Танланган: {formData.step2File.name}</p>}
-            </div>
-          </div>
-        );
-      case 3:
-        return (
-          <div>
-            <h3 className="text-sm font-semibold text-white">3-босқич: 3 та Excel жадвални юклаш</h3>
-            <div className="mt-3 space-y-3">
-              <div>
-                <label className="text-xs text-slate-400">Жадвал 1</label>
-                <input type="file" accept=".xlsx,.xls" onChange={(e) => handleFileChange(e, 'step3File1')} className="w-full text-white text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400">Жадвал 2</label>
-                <input type="file" accept=".xlsx,.xls" onChange={(e) => handleFileChange(e, 'step3File2')} className="w-full text-white text-sm" />
-              </div>
-              <div>
-                <label className="text-xs text-slate-400">Жадвал 3</label>
-                <input type="file" accept=".xlsx,.xls" onChange={(e) => handleFileChange(e, 'step3File3')} className="w-full text-white text-sm" />
-              </div>
-            </div>
-          </div>
-        );
-      case 4:
-        return (
-          <div>
-            <h3 className="text-sm font-semibold text-white">4-босқич: Ўзгартириш бўлганда ҳужжатларни қайта юклаш</h3>
-            <div className="mt-3">
-              <input
-                type="file"
-                accept=".pdf,.xlsx,.xls"
-                onChange={(e) => handleFileChange(e, 'step4File')}
-                className="w-full text-white text-sm"
-              />
-              {formData.step4File && <p className="text-xs text-green-400 mt-1">Танланган: {formData.step4File.name}</p>}
-            </div>
-          </div>
-        );
-      case 5:
-        return (
-          <div>
-            <h3 className="text-sm font-semibold text-white">5-босқич: Объектни якунлаш тўғрисида далолатнома</h3>
-            <div className="mt-3">
-              <input
-                type="file"
-                accept=".pdf"
-                onChange={(e) => handleFileChange(e, 'step5File')}
-                className="w-full text-white text-sm"
-              />
-              {formData.step5File && <p className="text-xs text-green-400 mt-1">Танланган: {formData.step5File.name}</p>}
-            </div>
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
+  // const renderStep = () => {
+  //   switch (currentStep) {
+  //     case 1:
+  //       return (
+  //         <div>
+  //           <h3 className="text-sm font-semibold text-white">1-босқич: Объектни рўйхатдан ўтказиш учун ариза юбориш</h3>
+  //           <div className="mt-3 space-y-3">
+  //             <input
+  //               name="name"
+  //               placeholder="Объект номи"
+  //               value={formData.name}
+  //               onChange={handleInputChange}
+  //               className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
+  //             />
+  //             <input
+  //               name="address"
+  //               placeholder="Манзил"
+  //               value={formData.address}
+  //               onChange={handleInputChange}
+  //               className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
+  //             />
+  //             <input
+  //               name="contractor"
+  //               placeholder="Пудратчи корхона"
+  //               value={formData.contractor}
+  //               onChange={handleInputChange}
+  //               className="w-full rounded-lg border border-white/10 bg-slate-950 px-3 py-2 text-white"
+  //             />
+  //           </div>
+  //         </div>
+  //       );
+  //     case 2:
+  //       return (
+  //         <div>
+  //           <h3 className="text-sm font-semibold text-white">2-босқич: Лойиха-смета ҳужжатларини ПДФ шаклида юклаш</h3>
+  //           <div className="mt-3">
+  //             <input
+  //               type="file"
+  //               accept=".pdf"
+  //               onChange={(e) => handleFileChange(e, 'step2File')}
+  //               className="w-full text-white text-sm"
+  //             />
+  //             {formData.step2File && <p className="text-xs text-green-400 mt-1">Танланган: {formData.step2File.name}</p>}
+  //           </div>
+  //         </div>
+  //       );
+  //     case 3:
+  //       return (
+  //         <div>
+  //           <h3 className="text-sm font-semibold text-white">3-босқич: 3 та Excel жадвални юклаш</h3>
+  //           <div className="mt-3 space-y-3">
+  //             <div>
+  //               <label className="text-xs text-slate-400">Жадвал 1</label>
+  //               <input type="file" accept=".xlsx,.xls" onChange={(e) => handleFileChange(e, 'step3File1')} className="w-full text-white text-sm" />
+  //             </div>
+  //             <div>
+  //               <label className="text-xs text-slate-400">Жадвал 2</label>
+  //               <input type="file" accept=".xlsx,.xls" onChange={(e) => handleFileChange(e, 'step3File2')} className="w-full text-white text-sm" />
+  //             </div>
+  //             <div>
+  //               <label className="text-xs text-slate-400">Жадвал 3</label>
+  //               <input type="file" accept=".xlsx,.xls" onChange={(e) => handleFileChange(e, 'step3File3')} className="w-full text-white text-sm" />
+  //             </div>
+  //           </div>
+  //         </div>
+  //       );
+  //     case 4:
+  //       return (
+  //         <div>
+  //           <h3 className="text-sm font-semibold text-white">4-босқич: Ўзгартириш бўлганда ҳужжатларни қайта юклаш</h3>
+  //           <div className="mt-3">
+  //             <input
+  //               type="file"
+  //               accept=".pdf,.xlsx,.xls"
+  //               onChange={(e) => handleFileChange(e, 'step4File')}
+  //               className="w-full text-white text-sm"
+  //             />
+  //             {formData.step4File && <p className="text-xs text-green-400 mt-1">Танланган: {formData.step4File.name}</p>}
+  //           </div>
+  //         </div>
+  //       );
+  //     case 5:
+  //       return (
+  //         <div>
+  //           <h3 className="text-sm font-semibold text-white">5-босқич: Объектни якунлаш тўғрисида далолатнома</h3>
+  //           <div className="mt-3">
+  //             <input
+  //               type="file"
+  //               accept=".pdf"
+  //               onChange={(e) => handleFileChange(e, 'step5File')}
+  //               className="w-full text-white text-sm"
+  //             />
+  //             {formData.step5File && <p className="text-xs text-green-400 mt-1">Танланган: {formData.step5File.name}</p>}
+  //           </div>
+  //         </div>
+  //       );
+  //     default:
+  //       return null;
+  //   }
+  // };
 
   return (
     <div>
-      <div className="mb-6 rounded-2xl border border-white/10 bg-[#111827] p-6">
+      {/* <div className="mb-6 rounded-2xl border border-white/10 bg-[#111827] p-6">
         <h2 className="text-lg font-semibold text-white">Янги ариза</h2>
         <div className="mt-4">
           <div className="flex items-center justify-between mb-4">
@@ -1886,7 +1886,7 @@ const ApplicationsPage = () => {
             )}
           </div>
         </div>
-      </div>
+      </div> */}
 
       <div className="rounded-2xl border border-white/10 bg-[#111827] p-6">
         <h2 className="text-lg font-semibold text-white mb-3">Юборилган аризалар</h2>
