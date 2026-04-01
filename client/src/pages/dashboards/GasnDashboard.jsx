@@ -1928,9 +1928,11 @@ const GasnDashboard = () => {
   const [compareId, setCompareId] = useState('');
   const [compareResult, setCompareResult] = useState(null);
   const [msg, setMsg] = useState('');
+  const { token } = useAuth();
 
   // Fetch data on mount
   useEffect(() => {
+      if (!token) return;
     Promise.all([
       api.get('/dashboard/summary'),
       api.get('/dashboard/companies'),
