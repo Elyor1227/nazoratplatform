@@ -1035,7 +1035,7 @@ const Sidebar = ({ activePage, setActivePage }) => {
     { id: 'obyektlar', icon: '🏗️', label: "Ob'ektlar", badge: { type: 'warn', text: '12' } },
     { id: 'taqqoslash', icon: '⚖️', label: 'Smeta taqqoslash', badge: { type: 'default', text: '5' } },
     { id: 'hisobotlar', icon: '📋', label: 'Korxona hisobotlari', badge: null },
-    { id: 'kamera', icon: '📷', label: 'Kamera monitoringi', badge: { type: 'ok', text: '17' } },
+    // { id: 'kamera', icon: '📷', label: 'Kamera monitoringi', badge: { type: 'ok', text: '17' } },
     { id: 'arizalar', icon: '📝', label: 'Arizalar', badge: { type: 'warn', text: '3' } }, // new
   ];
 
