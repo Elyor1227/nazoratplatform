@@ -2,7 +2,10 @@ import axios from 'axios';
 import { isStaticMode } from './config/staticMode.js';
 import { handleStaticRequest } from './mocks/staticApiHandler.js';
 
-const raw = axios.get(import.meta.env.VITE_API_URL + "/api")
+
+const raw = axios.create({
+  baseURL: import.meta.env.VITE_API_URL + "/api",
+});
 
 export function setAuthToken(token) {
   if (token) {
