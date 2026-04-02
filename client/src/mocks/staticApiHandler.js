@@ -1,9 +1,12 @@
 import {
   findUserByEmail,
   getAlerts,
+  getApplications,
   getProjects,
   getReports,
   patchAlert,
+  patchApplication,
+  pushApplication,
   pushProject,
   setReports,
   staticUsers,
@@ -310,6 +313,120 @@ export async function handleStaticRequest(method, url, data, config) {
       throw err;
     }
     return { data: { report }, status: 200, headers: {} };
+  }
+
+  if (method === 'get' && path === '/applications') {
+    const u = currentUser();
+    if (!u) return { data: {}, status: 401, headers: {} };
+    let list = getApplications();
+    if (u.role === 'construction_company') {
+      list = list.filter((a) => String(a.companyUserId) === String(u.id));
+    } else if (u.role === 'gasn') {
+      list = list.map((a) => {
+        const comp = staticUsers.find((x) => String(x.id) === String(a.companyUserId));
+        return {
+          ...a,
+          organizationName: comp?.organizationName || '',
+          companyEmail: comp?.email || '',
+        };
+      });
+    } else {
+      return { data: { error: 'Ruxsat yo\'q' }, status: 403, headers: {} };
+    }
+    return { data: { applications: list }, status: 200, headers: {} };
+  }
+
+  if (method === 'post' && path === '/applications') {
+    const u = currentUser();
+    if (u?.role !== 'construction_company') {
+      const err = new Error('Ruxsat yo\'q');
+      err.response = { status: 403, data: { error: err.message } };
+      throw err;
+    }
+    const { objectName, notes } = data || {};
+    if (objectName == null || !String(objectName).trim()) {
+      const err = new Error('objectName majburiy');
+      err.response = { status: 400, data: { error: err.message } };
+      throw err;
+    }
+    const application = {
+      _id: randomId(),
+      companyUserId: u.id,
+      objectName: String(objectName).trim(),
+      notes: notes != null ? String(notes).trim() : '',
+      status: 'pending',
+      gasnInspectorFio: '',
+      createdAt: new Date().toISOString(),
+    };
+    pushApplication(application);
+    return { data: { application }, status: 201, headers: {} };
+  }
+
+  if (method === 'post' && /^\/applications\/[^/]+\/approve$/.test(path)) {
+    const u = currentUser();
+    if (u?.role !== 'gasn') {
+      const err = new Error('Ruxsat yo\'q');
+      err.response = { status: 403, data: { error: err.message } };
+      throw err;
+    }
+    const id = path.match(/^\/applications\/([^/]+)\/approve$/)[1];
+    const app = getApplications().find((a) => a._id === id);
+    if (!app) {
+      const err = new Error('Ariza topilmadi');
+      err.response = { status: 404, data: { error: err.message } };
+      throw err;
+    }
+    const fio = String(data?.gasnInspectorFio ?? app.gasnInspectorFio ?? '').trim();
+    if (!fio) {
+      const err = new Error('Avval DAQNI xodimi F.I.Sh. kiritilishi kerak');
+      err.response = { status: 400, data: { error: err.message } };
+      throw err;
+    }
+    patchApplication(id, { status: 'approved', gasnInspectorFio: fio, reviewedByUserId: u.id });
+    const application = getApplications().find((a) => a._id === id);
+    return { data: { application }, status: 200, headers: {} };
+  }
+
+  if (method === 'post' && /^\/applications\/[^/]+\/reject$/.test(path)) {
+    const u = currentUser();
+    if (u?.role !== 'gasn') {
+      const err = new Error('Ruxsat yo\'q');
+      err.response = { status: 403, data: { error: err.message } };
+      throw err;
+    }
+    const id = path.match(/^\/applications\/([^/]+)\/reject$/)[1];
+    const app = getApplications().find((a) => a._id === id);
+    if (!app) {
+      const err = new Error('Ariza topilmadi');
+      err.response = { status: 404, data: { error: err.message } };
+      throw err;
+    }
+    const extra = {};
+    if (data?.gasnInspectorFio != null) extra.gasnInspectorFio = String(data.gasnInspectorFio).trim();
+    patchApplication(id, { ...extra, status: 'rejected', reviewedByUserId: u.id });
+    const application = getApplications().find((a) => a._id === id);
+    return { data: { application }, status: 200, headers: {} };
+  }
+
+  if (method === 'patch' && /^\/applications\/[^/]+$/.test(path)) {
+    const u = currentUser();
+    if (u?.role !== 'gasn') {
+      const err = new Error('Ruxsat yo\'q');
+      err.response = { status: 403, data: { error: err.message } };
+      throw err;
+    }
+    const id = path.replace('/applications/', '');
+    const { gasnInspectorFio } = data || {};
+    if (gasnInspectorFio !== undefined) {
+      patchApplication(id, { gasnInspectorFio: String(gasnInspectorFio).trim() });
+    }
+    const application = getApplications().find((a) => a._id === id);
+    if (!application) {
+      const err = new Error('Ariza topilmadi');
+      err.response = { status: 404, data: { error: err.message } };
+      throw err;
+    }
+    return { data: { application }, status: 200, headers: {} };
   }
 
   const err = new Error(`Statik rejim: ${method} ${path} aniqlanmadi`);

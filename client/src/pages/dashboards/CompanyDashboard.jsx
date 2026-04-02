@@ -1033,7 +1033,7 @@ const fayllar = [
 
 const xabarlar = [
   { from: 'Soliq inspeksiyasi', text: '2025-Q4 hisobotingiz tasdiqlandi.', time: 'Bugun 08:30', type: 's-green' },
-  { from: 'GASN', text: '14-ob\'ekt kamerasi ma\'lumotlari muvofiqlashtirish talab qiladi.', time: 'Kecha 16:45', type: 's-yellow' },
+  { from: 'GASN', text: 'Loyiha-smeta va hisobot ko‘rsatkichlari tekshiruvi rejalashtirildi.', time: 'Kecha 16:45', type: 's-yellow' },
   { from: 'Tizim', text: '2025-Q1 hisobotini topshirish muddati — 10 aprel 2026.', time: '27.03.2026', type: 's-blue' },
 ];
 
@@ -1064,7 +1064,7 @@ const xodimlarData = [
 
 const tekshiruvlar = [
   { title: 'Soliq inspeksiyasi — 2024 yillik', status: 's-yellow', st: 'Jarayonda', date: '20.03.2026', detail: 'Inspektor: B. Toshmatov' },
-  { title: 'GASN — 14-ob\'ekt kamera', status: 's-yellow', st: 'Kutilmoqda', date: '18.03.2026', detail: 'Kamera #14 ma\'lumotlari tahlil qilinmoqda' },
+  { title: 'GASN — smeta va hisobot solishtirish', status: 's-yellow', st: 'Kutilmoqda', date: '18.03.2026', detail: 'Loyiha hujjatlari tahlil qilinmoqda' },
   { title: 'Mehnat inspeksiyasi — 2025-Q3', status: 's-green', st: 'Yopildi', date: '05.01.2026', detail: 'Hech qanday qonunbuzarlik topilmadi' },
   { title: 'Soliq inspeksiyasi — 2025-Q2', status: 's-green', st: 'Yopildi', date: '10.10.2025', detail: 'Tasdiqlandi' },
 ];
@@ -1085,6 +1085,7 @@ const NAV_ITEMS = [
   { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
   { id: 'hisobot', icon: '📋', label: 'Yakuniy hisobot' },
   { id: 'obekt', icon: '🏗️', label: "Ob'ekt ro'yxatga olish" },
+  { id: 'arizalar', icon: '📝', label: 'DAQNI arizalari' },
   { id: 'xodimlar', icon: '👷', label: "Xodimlar ro'yxati" },
   { id: 'shartnomalar', icon: '📄', label: 'Shartnomalar' },
 ];
@@ -2063,6 +2064,162 @@ const XodimlarPage = () => {
   );
 };
 
+// -------------------- DAQNI ARIZALARI (API) --------------------
+const companyAppStatus = (s) => {
+  if (s === 'approved') return { text: 'Ma’qullangan', cls: 's-green' };
+  if (s === 'rejected') return { text: 'Rad etilgan', cls: 's-red' };
+  return { text: 'Kutilmoqda', cls: 's-yellow' };
+};
+
+const ArizalarPage = () => {
+  const [applications, setApplications] = useState([]);
+  const [objectName, setObjectName] = useState('');
+  const [notes, setNotes] = useState('');
+  const [msg, setMsg] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+
+  const load = async () => {
+    try {
+      const { data } = await api.get('/applications');
+      setApplications(data.applications || []);
+    } catch {
+      setMsg('Arizalar yuklanmadi');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    if (!objectName.trim()) return;
+    setSending(true);
+    setMsg('');
+    try {
+      await api.post('/applications', { objectName: objectName.trim(), notes: notes.trim() });
+      setObjectName('');
+      setNotes('');
+      await load();
+    } catch (err) {
+      setMsg(err.response?.data?.error || 'Yuborilmadi');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const inputStyle = {
+    width: '100%',
+    padding: '10px 12px',
+    borderRadius: 8,
+    border: '1px solid rgba(255,255,255,0.1)',
+    background: 'rgba(15,23,42,0.8)',
+    color: '#e5e7eb',
+    fontSize: 13,
+    outline: 'none',
+  };
+  const labelStyle = { display: 'block', fontSize: 11, color: '#9ca3af', marginBottom: 6 };
+
+  return (
+    <div>
+      <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#67e8f9' }}>DAQNI ga obyektni ro‘yxatga olish arizasi</div>
+        <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+          Ariza yuborilgach, inspektor F.I.Sh. biriktiradi va tasdiqlaydi. Holatni quyidagi jadvaldan kuzating.
+        </div>
+      </div>
+
+      <form
+        onSubmit={submit}
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 20, marginBottom: 24 }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 14 }}>Yangi ariza</div>
+        <div style={{ marginBottom: 14 }}>
+          <label style={labelStyle}>Obyekt nomi / manzili *</label>
+          <input
+            type="text"
+            style={inputStyle}
+            value={objectName}
+            onChange={(e) => setObjectName(e.target.value)}
+            placeholder="Masalan: 42-maktab yangi binosi"
+            required
+          />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <label style={labelStyle}>Izoh (ixtiyoriy)</label>
+          <textarea
+            style={{ ...inputStyle, minHeight: 72, resize: 'vertical' }}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Qisqa izoh"
+          />
+        </div>
+        {msg && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 12 }}>{msg}</div>}
+        <button
+          type="submit"
+          disabled={sending || !objectName.trim()}
+          style={{
+            padding: '10px 20px',
+            borderRadius: 8,
+            border: 'none',
+            background: sending ? 'rgba(37,99,235,0.5)' : '#2563eb',
+            color: '#fff',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: sending ? 'wait' : 'pointer',
+          }}
+        >
+          {sending ? 'Yuborilmoqda…' : 'Arizani yuborish'}
+        </button>
+      </form>
+
+      <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16 }}>
+        <div style={{ padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff' }}>Mening arizalarim</div>
+        </div>
+        {loading ? (
+          <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Yuklanmoqda…</div>
+        ) : applications.length === 0 ? (
+          <div style={{ padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Hozircha ariza yo‘q.</div>
+        ) : (
+          applications.map((a) => {
+            const st = companyAppStatus(a.status);
+            const dateStr = a.createdAt ? new Date(a.createdAt).toLocaleDateString('uz-UZ') : '—';
+            return (
+              <div
+                key={a._id}
+                style={{
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                  gap: 12,
+                  padding: '14px 20px',
+                  borderBottom: '1px solid rgba(255,255,255,0.04)',
+                }}
+              >
+                <div style={{ flex: '1 1 200px' }}>
+                  <div style={{ fontSize: 13, fontWeight: 500, color: '#e5e7eb' }}>{a.objectName}</div>
+                  {a.notes ? <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>{a.notes}</div> : null}
+                </div>
+                <div style={{ fontSize: 11, color: '#6b7280' }}>{dateStr}</div>
+                <span style={{ padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 500 }} className={getStatusClass(st.cls)}>
+                  {st.text}
+                </span>
+                <div style={{ fontSize: 11, color: '#94a3b8', minWidth: 140 }}>
+                  DAQNI: {a.gasnInspectorFio || '—'}
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+};
+
 // -------------------- TEKSHIRUV PAGE --------------------
 const TekshiruvPage = () => (
   <div>
@@ -2128,6 +2285,7 @@ const PAGE_TITLES = {
   dashboard: 'Korxona Dashboard',
   hisobot: 'Yakuniy hisobot',
   obekt: "Ob'ekt Ro'yxatga Olish",
+  arizalar: 'DAQNI arizalari',
   xodimlar: "Xodimlar Ro'yxati",
   shartnomalar: 'Shartnomalar',
   tekshiruv: 'Tekshiruv Holati',
@@ -2142,6 +2300,7 @@ export default function CompanyDashboard() {
       case 'dashboard': return <DashboardPage setActivePage={setActivePage} />;
       case 'hisobot': return <HisobotPage />;
       case 'obekt': return <ObektPage />;
+      case 'arizalar': return <ArizalarPage />;
       case 'xodimlar': return <XodimlarPage />;
       case 'shartnomalar': return <ShartnomalarPage />;
       case 'tekshiruv': return <TekshiruvPage />;

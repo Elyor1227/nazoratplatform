@@ -1,5 +1,9 @@
-import dotenv from "dotenv";
-dotenv.config({ path: "./server/.env" });
+import dotenv from 'dotenv';
+import { dirname, join } from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: join(__dirname, '..', '.env') });
 import http from 'http';
 import express from 'express';
 import cors from 'cors';
@@ -13,6 +17,7 @@ import projectsRoutes from './routes/projects.js';
 import compareRoutes from './routes/compare.js';
 import alertsRoutes from './routes/alerts.js';
 import dashboardRoutes from './routes/dashboard.js';
+import applicationsRoutes from './routes/applications.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -61,6 +66,7 @@ app.use('/api/projects', projectsRoutes);
 app.use('/api/compare', compareRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/applications', applicationsRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -68,9 +74,21 @@ app.use((err, _req, res, _next) => {
 });
 
 const port = Number(process.env.PORT) || 5000;
+/** `memory` = mongodb-memory-server (faqat tez sinov; seed alohida ulanmaydi). Aks holda mahalliy/cloud URI. */
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/soliqnazorat';
 
-await connectDb(mongoUri);
+try {
+  await connectDb(mongoUri);
+} catch (err) {
+  console.error('\n[!] MongoDB ga ulanib bo\'lmadi:', err.message);
+  console.error('\nYechimlar:');
+  console.error('  • Docker: loyiha ildizida  docker compose up -d  (port 27017)');
+  console.error('  • Yoki MongoDB o\'rnating va ishga tushiring.');
+  console.error('  • Yoki .env da MONGODB_URI=... (masalan MongoDB Atlas).');
+  console.error('  • Sinov uchun: MONGODB_URI=memory  (npm run seed shu bilan ishlamaydi)\n');
+  process.exit(1);
+}
+
 server.listen(port, () => {
   console.log(`API: http://localhost:${port}`);
 });

@@ -92,6 +92,39 @@ let alerts = [
   },
 ];
 
+const gasnId = '64f0a1b2c3d4e5f6a7b8c9d1';
+
+let applications = [
+  {
+    _id: '64app01b2c3d4e5f6a7b8c9a1',
+    companyUserId: companyId,
+    objectName: "42-maktab yangi binosi",
+    notes: '',
+    status: 'pending',
+    gasnInspectorFio: '',
+    createdAt: new Date('2025-03-25').toISOString(),
+  },
+  {
+    _id: '64app02b2c3d4e5f6a7b8c9a2',
+    companyUserId: companyId,
+    objectName: 'Markaziy poliklinika rekonstr.',
+    notes: '',
+    status: 'pending',
+    gasnInspectorFio: 'Karimov A.A.',
+    createdAt: new Date('2025-03-26').toISOString(),
+  },
+  {
+    _id: '64app03b2c3d4e5f6a7b8c9a3',
+    companyUserId: companyId,
+    objectName: 'Sport majmuasi',
+    notes: 'Namuna',
+    status: 'approved',
+    gasnInspectorFio: 'Tursunov B.B.',
+    reviewedByUserId: gasnId,
+    createdAt: new Date('2025-03-20').toISOString(),
+  },
+];
+
 export function getReports() {
   return reports;
 }
@@ -118,4 +151,27 @@ export function patchAlert(id, patch) {
 
 export function findUserByEmail(email) {
   return staticUsers.find((u) => u.email.toLowerCase() === String(email).toLowerCase());
+}
+
+export function getApplications() {
+  return applications;
+}
+
+export function pushApplication(app) {
+  applications = [...applications, app];
+}
+
+export function patchApplication(id, patch) {
+  applications = applications.map((a) => {
+    if (a._id !== id) return a;
+    const next = { ...a };
+    for (const k of Object.keys(patch)) {
+      if (patch[k] !== undefined) next[k] = patch[k];
+    }
+    return next;
+  });
+}
+
+export function setApplications(next) {
+  applications = typeof next === 'function' ? next(applications) : next;
 }
