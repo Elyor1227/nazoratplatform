@@ -1255,7 +1255,7 @@ const DashboardPage = ({ setActivePage }) => (
   </div>
 );
 
-// -------------------- YAKUNIY HISOBOT (REAL API, faylsiz) --------------------
+// -------------------- YAKUNIY HISOBOT (API + ilova fayllar: invoices) --------------------
 const emptyYakuniyForm = () => ({
   startDate: '',
   endDate: '',
@@ -1275,6 +1275,8 @@ const HisobotPage = () => {
   const [msgType, setMsgType] = useState('info');
   const [step, setStep] = useState(1);
   const [form, setForm] = useState(emptyYakuniyForm);
+  const [invoiceFiles, setInvoiceFiles] = useState([]);
+  const [fileHint, setFileHint] = useState('');
 
   async function load() {
     try {
@@ -1321,10 +1323,15 @@ const HisobotPage = () => {
       fd.append('contractAmount', String(form.projectTotal || 0));
       fd.append('constructionType', form.objectName?.trim() || 'Yakuniy hisobot');
       fd.append('notes', buildNotesPayload());
+      invoiceFiles.forEach((file) => {
+        fd.append('invoices', file);
+      });
       await api.post('/reports', fd);
       setMsg('Yakuniy hisobot saqlandi.');
       setMsgType('success');
       setStep(3);
+      setInvoiceFiles([]);
+      setFileHint('');
       load();
     } catch (err) {
       setMsg(err.response?.data?.error || 'Xatolik yuz berdi');
@@ -1337,6 +1344,15 @@ const HisobotPage = () => {
       await downloadBlob(api, `/reports/${reportId}/pdf`, 'yakuniy-hisobot.pdf');
     } catch {
       setMsg('PDF yuklab olinmadi');
+      setMsgType('error');
+    }
+  }
+
+  async function downloadInvoiceFile(reportId, inv) {
+    try {
+      await downloadBlob(api, `/reports/${reportId}/files/${encodeURIComponent(inv.storedName)}`, inv.fileName || 'fayl');
+    } catch {
+      setMsg('Fayl yuklab olinmadi');
       setMsgType('error');
     }
   }
@@ -1381,6 +1397,8 @@ const HisobotPage = () => {
 
   const resetForm = () => {
     setForm(emptyYakuniyForm());
+    setInvoiceFiles([]);
+    setFileHint('');
     setStep(1);
     setMsg('');
   };
@@ -1437,9 +1455,59 @@ const HisobotPage = () => {
               <label style={labelStyle}>Obyekt nomi / tavsif</label>
               <input style={inputStyle} placeholder="Masalan: 12-maktab yangi binosi" value={form.objectName} onChange={(e) => setForm({ ...form, objectName: e.target.value })} />
             </div>
-            <div style={{ marginBottom: 20 }}>
+            <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Izoh (ixtiyoriy)</label>
               <textarea rows={2} style={{ ...inputStyle, resize: 'vertical' }} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+            </div>
+            <div style={{ marginBottom: 20 }}>
+              <label style={labelStyle}>Ilova fayllar (PDF, Excel, rasm, ZIP — 15 tagacha, har biri max. 10 MB)</label>
+              <p style={{ fontSize: 11, color: '#52525b', margin: '0 0 8px' }}>Hisob-faktura, dalolatnoma yoki boshqa hujjatlarni biriktiring.</p>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.xlsx,.xls,.doc,.docx,.zip,.jpg,.jpeg,.png,.webp"
+                style={{ width: '100%', fontSize: 12, color: '#a1a1aa' }}
+                onChange={(e) => {
+                  const add = Array.from(e.target.files || []);
+                  const MAX = 10 * 1024 * 1024;
+                  const ok = add.filter((f) => f.size <= MAX);
+                  setFileHint(ok.length < add.length ? "10 MB dan katta fayllar qo'shilmadi." : '');
+                  setInvoiceFiles((prev) => [...prev, ...ok].slice(0, 15));
+                  e.target.value = '';
+                }}
+              />
+              {fileHint && <p style={{ fontSize: 11, color: '#f87171', margin: '8px 0 0' }}>{fileHint}</p>}
+              {invoiceFiles.length > 0 && (
+                <ul style={{ margin: '12px 0 0', padding: 0, listStyle: 'none' }}>
+                  {invoiceFiles.map((f, i) => (
+                    <li
+                      key={`${f.name}-${i}`}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 8,
+                        padding: '8px 12px',
+                        marginBottom: 6,
+                        background: 'rgba(255,255,255,0.04)',
+                        borderRadius: 8,
+                        fontSize: 12,
+                        border: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <span style={{ color: '#e5e7eb', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setInvoiceFiles((p) => p.filter((_, j) => j !== i))}
+                        style={{ flexShrink: 0, border: 'none', background: 'transparent', color: '#f87171', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}
+                        aria-label="Olib tashlash"
+                      >
+                        ×
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setStep(2)} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
@@ -1462,6 +1530,7 @@ const HisobotPage = () => {
                 ['Ijtimoiy soliqi', form.socialTax ? Number(form.socialTax).toLocaleString() + " so'm" : '—'],
                 ['Xodimlar soni', form.employeeCount || '—'],
                 ['Obyekt', form.objectName || '—'],
+                ['Ilova fayllar', invoiceFiles.length ? `${invoiceFiles.length} ta` : '—'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 12 }}>
                   <span style={{ color: '#6b7280' }}>{k}</span>
@@ -1469,6 +1538,12 @@ const HisobotPage = () => {
                 </div>
               ))}
             </div>
+            {invoiceFiles.length > 0 && (
+              <div style={{ marginBottom: 14, fontSize: 11, color: '#94a3b8' }}>
+                <strong style={{ color: '#cbd5e1' }}>Fayllar:</strong>{' '}
+                {invoiceFiles.map((f) => f.name).join(', ')}
+              </div>
+            )}
             <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 11, color: '#fbbf24' }}>
               ⚠ Yuborilgan ma&apos;lumotlar tekshiriladi. Noto&apos;g&apos;ri ma&apos;lumot uchun javobgarlik qonunchilikka muvofiq.
             </div>
@@ -1512,6 +1587,33 @@ const HisobotPage = () => {
                 </button>
               </div>
               <p style={{ color: '#6b7280', fontSize: 12, margin: 0 }}>Xodimlar: {r.employeeCount}, loyiha: {r.contractAmount?.toLocaleString()} so'm</p>
+              {r.invoices?.length > 0 && (
+                <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {r.invoices.map((inv) => (
+                    <button
+                      key={inv.storedName || inv.fileName}
+                      type="button"
+                      onClick={() => downloadInvoiceFile(r._id, inv)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 6,
+                        border: '1px solid rgba(37,99,235,0.35)',
+                        background: 'rgba(37,99,235,0.12)',
+                        color: '#93c5fd',
+                        fontSize: 11,
+                        cursor: 'pointer',
+                        maxWidth: '100%',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      title={inv.fileName}
+                    >
+                      📎 {inv.fileName}
+                    </button>
+                  ))}
+                </div>
+              )}
               {r.notes && (
                 <p style={{ color: '#4b5563', fontSize: 11, marginTop: 8, whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden' }}>{r.notes.slice(0, 200)}{r.notes.length > 200 ? '…' : ''}</p>
               )}

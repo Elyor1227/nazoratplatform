@@ -10,6 +10,7 @@ import cors from 'cors';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { connectDb } from './config/db.js';
+import { getJwtSecret } from './config/jwtSecret.js';
 
 import authRoutes from './routes/auth.js';
 import reportsRoutes from './routes/reports.js';
@@ -34,7 +35,7 @@ io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
   if (!token) return next(new Error('Token yo\'q'));
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, getJwtSecret());
     socket.userId = payload.sub;
     socket.userRole = payload.role;
     next();

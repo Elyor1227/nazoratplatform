@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
 import { setAuthToken } from '../api.js';
 import { isStaticMode } from '../config/staticMode.js';
@@ -9,7 +9,11 @@ const TOKEN_KEY = 'soliqnazorat_token';
 const USER_KEY = 'soliqnazorat_user';
 
 export function AuthProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
+  const [token, setToken] = useState(() => {
+    const t = localStorage.getItem(TOKEN_KEY);
+    setAuthToken(t || null);
+    return t;
+  });
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem(USER_KEY);
     try {
@@ -21,7 +25,7 @@ export function AuthProvider({ children }) {
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
-    setAuthToken(token);
+    setAuthToken(token || null);
   }, [token]);
 
   useEffect(() => {
@@ -33,7 +37,8 @@ export function AuthProvider({ children }) {
       setSocket(null);
       return;
     }
-    const s = io(import.meta.env.VITE_API_URL, {
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const s = io(apiUrl, {
       path: '/socket.io',
       auth: { token },
       transports: ['websocket', 'polling'],
@@ -44,19 +49,27 @@ export function AuthProvider({ children }) {
     };
   }, [token]);
 
-  const login = (data) => {
+  const login = useCallback((data) => {
     setToken(data.token);
     setUser(data.user);
     localStorage.setItem(TOKEN_KEY, data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(data.user));
-  };
+    setAuthToken(data.token);
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     setToken(null);
     setUser(null);
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
-  };
+    setAuthToken(null);
+  }, []);
+
+  useEffect(() => {
+    const onSessionLost = () => logout();
+    window.addEventListener('soliqnazorat:session-expired', onSessionLost);
+    return () => window.removeEventListener('soliqnazorat:session-expired', onSessionLost);
+  }, [logout]);
 
   const value = useMemo(
     () => ({ token, user, login, logout, socket, isAuthenticated: !!token }),

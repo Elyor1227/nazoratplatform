@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User, ROLES } from '../models/User.js';
 import { authRequired, loadUser } from '../middleware/auth.js';
+import { getJwtSecret } from '../config/jwtSecret.js';
 
 const router = Router();
 
@@ -55,11 +56,7 @@ router.get('/me', authRequired, loadUser, (req, res) => {
 });
 
 function signToken(user) {
-  return jwt.sign(
-    { sub: user._id.toString(), role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+  return jwt.sign({ sub: user._id.toString(), role: user.role }, getJwtSecret(), { expiresIn: '7d' });
 }
 
 function publicUser(user) {

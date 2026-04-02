@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { User } from '../models/User.js';
+import { getJwtSecret } from '../config/jwtSecret.js';
 
 export function authRequired(req, res, next) {
   const header = req.headers.authorization;
@@ -8,7 +9,7 @@ export function authRequired(req, res, next) {
     return res.status(401).json({ error: 'Token talab qilinadi' });
   }
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = jwt.verify(token, getJwtSecret());
     req.userId = payload.sub;
     req.userRole = payload.role;
     next();

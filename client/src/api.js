@@ -3,9 +3,27 @@ import { isStaticMode } from './config/staticMode.js';
 import { handleStaticRequest } from './mocks/staticApiHandler.js';
 
 
+const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const raw = axios.create({
-  baseURL: import.meta.env.VITE_API_URL + "/api",
+  baseURL: `${apiBase.replace(/\/$/, '')}/api`,
 });
+
+raw.interceptors.response.use(
+  (res) => res,
+  (err) => {
+    if (isStaticMode()) return Promise.reject(err);
+    const url = String(err.config?.url || '');
+    if (
+      err.response?.status === 401 &&
+      !url.includes('/auth/login') &&
+      !url.includes('/auth/register')
+    ) {
+      window.dispatchEvent(new CustomEvent('soliqnazorat:session-expired'));
+    }
+    return Promise.reject(err);
+  }
+);
 
 export function setAuthToken(token) {
   if (token) {
