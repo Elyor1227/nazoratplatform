@@ -10,7 +10,7 @@ const ROLE_HOME = {
 
 const ROLE_LABEL = {
   construction_company: 'Qurilish korxonasi',
-  gasn: 'GASN',
+  gasn: 'Davlat arxitektura-qurilish nazorat inspeksiyasi',
   tax_inspection: 'Soliq inspeksiyasi',
   labor_inspection: 'Mehnat inspeksiyasi',
 };

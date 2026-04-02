@@ -1037,13 +1037,29 @@ const xabarlar = [
   { from: 'Tizim', text: '2025-Q1 hisobotini topshirish muddati — 10 aprel 2026.', time: '27.03.2026', type: 's-blue' },
 ];
 
+/** Lavozimlar ro‘yxati (tanlash uchun) */
+const LAVOZIMLAR = [
+  'Rahbar',
+  'Ish boshqaruvchi',
+  'Bosh hisobchi',
+  'Hisobchi',
+  'Haydovchi',
+  'Usta',
+  'Muhandis',
+  'Santexnik',
+  'Elektrik',
+  'Qoravul',
+  'Oshpaz',
+  'Boshqa',
+];
+
 const xodimlarData = [
-  { n: 'Karimov Alisher', lav: 'Usta duvol', pinfl: '12345678901234', ihq: '3 200 000', sana: '01.03.2024', holat: 's-green' },
-  { n: 'Rahimov Bobur', lav: 'Elektrik', pinfl: '23456789012345', ihq: '2 800 000', sana: '15.06.2024', holat: 's-green' },
-  { n: 'Toshmatov Jasur', lav: 'Santexnik', pinfl: '34567890123456', ihq: '2 600 000', sana: '01.09.2024', holat: 's-green' },
-  { n: 'Mirzayev Sardor', lav: 'Muhandis', pinfl: '45678901234567', ihq: '4 500 000', sana: '10.01.2025', holat: 's-green' },
-  { n: 'Xoliqov Nodir', lav: 'Ishchi', pinfl: '56789012345678', ihq: '2 200 000', sana: '01.02.2025', holat: 's-yellow' },
-  { n: 'Qodirov Ulugbek', lav: 'Kranchi', pinfl: '67890123456789', ihq: '3 800 000', sana: '05.03.2025', holat: 's-green' },
+  { id: 'x1', n: 'Karimov Alisher', lavozim: 'Usta', pinfl: '12345678901234', ihq: '3 200 000', sana: '2024-03-01', bandlik: 'doimiy', boshatilgan: '', holat: 's-green' },
+  { id: 'x2', n: 'Rahimov Bobur', lavozim: 'Elektrik', pinfl: '23456789012345', ihq: '2 800 000', sana: '2024-06-15', bandlik: 'doimiy', boshatilgan: '', holat: 's-green' },
+  { id: 'x3', n: 'Toshmatov Jasur', lavozim: 'Santexnik', pinfl: '34567890123456', ihq: '2 600 000', sana: '2024-09-01', bandlik: 'doimiy', boshatilgan: '', holat: 's-green' },
+  { id: 'x4', n: 'Mirzayev Sardor', lavozim: 'Muhandis', pinfl: '45678901234567', ihq: '4 500 000', sana: '2025-01-10', bandlik: 'doimiy', boshatilgan: '', holat: 's-green' },
+  { id: 'x5', n: 'Xoliqov Nodir', lavozim: 'Usta', pinfl: '56789012345678', ihq: '2 200 000', sana: '2025-02-01', bandlik: 'yollanma', boshatilgan: '', holat: 's-yellow' },
+  { id: 'x6', n: 'Qodirov Ulugbek', lavozim: 'Haydovchi', pinfl: '67890123456789', ihq: '3 800 000', sana: '2025-03-05', bandlik: 'doimiy', boshatilgan: '', holat: 's-green' },
 ];
 
 const tekshiruvlar = [
@@ -1067,7 +1083,7 @@ const getStatusClass = (type) => {
 // -------------------- SIDEBAR --------------------
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
-  { id: 'hisobot', icon: '📋', label: 'Hisobot yuklash' },
+  { id: 'hisobot', icon: '📋', label: 'Yakuniy hisobot' },
   { id: 'obekt', icon: '🏗️', label: "Ob'ekt ro'yxatga olish" },
   { id: 'xodimlar', icon: '👷', label: "Xodimlar ro'yxati" },
   { id: 'shartnomalar', icon: '📄', label: 'Shartnomalar' },
@@ -1238,51 +1254,76 @@ const DashboardPage = ({ setActivePage }) => (
   </div>
 );
 
-// -------------------- HISOBOT YUKLASH PAGE (REAL API) --------------------
+// -------------------- YAKUNIY HISOBOT (REAL API, faylsiz) --------------------
+const emptyYakuniyForm = () => ({
+  startDate: '',
+  endDate: '',
+  projectTotal: '',
+  vatTax: '',
+  payrollFund: '',
+  incomeTax: '',
+  socialTax: '',
+  employeeCount: '',
+  objectName: '',
+  notes: '',
+});
+
 const HisobotPage = () => {
   const [reports, setReports] = useState([]);
   const [msg, setMsg] = useState('');
   const [msgType, setMsgType] = useState('info');
-  const [files, setFiles] = useState([]);
   const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    periodYear: new Date().getFullYear(),
-    periodMonth: new Date().getMonth() + 1,
-    employeeCount: '',
-    payrollFund: '',
-    contractAmount: '',
-    constructionType: '',
-    notes: '',
-  });
-
-
+  const [form, setForm] = useState(emptyYakuniyForm);
 
   async function load() {
     try {
       const r = await api.get('/reports');
       setReports(r.data.reports || []);
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+  }, []);
+
+  function buildNotesPayload() {
+    const lines = [
+      '[Yakuniy hisobot]',
+      `Qurilish boshlangan sana: ${form.startDate || '—'}`,
+      `Qurilish yakunlangan sana: ${form.endDate || '—'}`,
+      `Qo’shimcha qiymat soliqi (QQS) summasi: ${form.vatTax || '—'} so'm`,
+      `Daromad soliqi: ${form.incomeTax || '—'} so'm`,
+      `Ijtimoiy soliqi: ${form.socialTax || '—'} so'm`,
+    ];
+    if (form.notes?.trim()) lines.push(`Izoh: ${form.notes.trim()}`);
+    return lines.join('\n');
+  }
 
   async function handleSubmit() {
     setMsg('');
+    if (!form.startDate || !form.endDate) {
+      setMsg('Qurilish boshlangan va yakunlangan sanalarni kiriting');
+      setMsgType('error');
+      return;
+    }
     try {
+      const end = new Date(form.endDate);
+      const periodYear = end.getFullYear();
+      const periodMonth = end.getMonth() + 1;
       const fd = new FormData();
-      fd.append('periodYear', String(form.periodYear));
-      fd.append('periodMonth', String(form.periodMonth));
-      fd.append('employeeCount', String(form.employeeCount));
-      fd.append('payrollFund', String(form.payrollFund));
-      fd.append('contractAmount', String(form.contractAmount));
-      fd.append('constructionType', form.constructionType);
-      fd.append('notes', form.notes || '');
-      for (const f of files) fd.append('invoices', f);
+      fd.append('periodYear', String(periodYear));
+      fd.append('periodMonth', String(periodMonth));
+      fd.append('employeeCount', String(form.employeeCount || 0));
+      fd.append('payrollFund', String(form.payrollFund || 0));
+      fd.append('contractAmount', String(form.projectTotal || 0));
+      fd.append('constructionType', form.objectName?.trim() || 'Yakuniy hisobot');
+      fd.append('notes', buildNotesPayload());
       await api.post('/reports', fd);
-      setMsg('Hisobot va fakturalar saqlandi.');
+      setMsg('Yakuniy hisobot saqlandi.');
       setMsgType('success');
-      setFiles([]);
-      setStep(4);
+      setStep(3);
       load();
     } catch (err) {
       setMsg(err.response?.data?.error || 'Xatolik yuz berdi');
@@ -1292,28 +1333,42 @@ const HisobotPage = () => {
 
   async function downloadPdf(reportId) {
     try {
-      await downloadBlob(api, `/reports/${reportId}/pdf`, 'hisobot.pdf');
-    } catch { setMsg('PDF yuklab olinmadi'); setMsgType('error'); }
-  }
-
-  async function downloadInvoice(reportId, storedName, fileName) {
-    try {
-      const path = `/reports/${reportId}/files/${encodeURIComponent(storedName)}`;
-      await downloadBlob(api, path, fileName || 'fayl');
-    } catch { setMsg('Fayl yuklab olinmadi'); setMsgType('error'); }
+      await downloadBlob(api, `/reports/${reportId}/pdf`, 'yakuniy-hisobot.pdf');
+    } catch {
+      setMsg('PDF yuklab olinmadi');
+      setMsgType('error');
+    }
   }
 
   const StepIndicator = () => (
-    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28 }}>
-      {[{ n: 1, label: "Ma'lumotlar" }, { n: 2, label: 'Fayllar' }, { n: 3, label: 'Tekshirish' }, { n: 4, label: 'Yuborildi' }].map((s, idx) => (
-        <div key={s.n} style={{ display: 'flex', alignItems: 'center', flex: idx < 3 ? 1 : 'initial' }}>
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 28, flexWrap: 'wrap', gap: 8 }}>
+      {[
+        { n: 1, label: "Ma'lumotlar" },
+        { n: 2, label: 'Tekshirish' },
+        { n: 3, label: 'Yuborildi' },
+      ].map((s, idx) => (
+        <div key={s.n} style={{ display: 'flex', alignItems: 'center', flex: idx < 2 ? 1 : 'initial' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{ width: 26, height: 26, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, background: s.n < step ? '#10b981' : s.n === step ? '#2563eb' : 'rgba(255,255,255,0.05)', border: s.n < step ? '2px solid #10b981' : s.n === step ? '2px solid #2563eb' : '2px solid rgba(255,255,255,0.12)', color: s.n <= step ? '#fff' : '#6b7280' }}>
+            <div
+              style={{
+                width: 26,
+                height: 26,
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 11,
+                fontWeight: 700,
+                background: s.n < step ? '#10b981' : s.n === step ? '#2563eb' : 'rgba(255,255,255,0.05)',
+                border: s.n < step ? '2px solid #10b981' : s.n === step ? '2px solid #2563eb' : '2px solid rgba(255,255,255,0.12)',
+                color: s.n <= step ? '#fff' : '#6b7280',
+              }}
+            >
               {s.n < step ? '✓' : s.n}
             </div>
             <span style={{ fontSize: 12, fontWeight: 500, color: s.n === step ? '#60a5fa' : s.n < step ? '#10b981' : '#6b7280' }}>{s.label}</span>
           </div>
-          {idx < 3 && <div style={{ flex: 1, height: 1, background: s.n < step ? '#10b981' : 'rgba(255,255,255,0.08)', margin: '0 12px' }}></div>}
+          {idx < 2 && <div style={{ flex: 1, height: 1, background: s.n < step ? '#10b981' : 'rgba(255,255,255,0.08)', margin: '0 12px', minWidth: 24 }} />}
         </div>
       ))}
     </div>
@@ -1323,11 +1378,19 @@ const HisobotPage = () => {
   const labelStyle = { fontSize: 11, color: '#9ca3af', display: 'block', marginBottom: 6, fontWeight: 500 };
   const cardStyle = { background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 16, padding: 24 };
 
+  const resetForm = () => {
+    setForm(emptyYakuniyForm());
+    setStep(1);
+    setMsg('');
+  };
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>
       <section style={cardStyle}>
-        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Yangi hisobot</h2>
-        <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 24 }}>Xodimlar, ish haqi fondi, shartnoma, qurilish turi, elektron fakturalar</p>
+        <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 4 }}>Yakuniy hisobot</h2>
+        <p style={{ fontSize: 12, color: '#6b7280', marginBottom: 24 }}>
+          Obyekt yakunlanganda kiritiladi — qurilish muddati, loyiha qiymati, soliqlar va xodimlar.
+        </p>
 
         <StepIndicator />
 
@@ -1335,104 +1398,101 @@ const HisobotPage = () => {
           <div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
-                <label style={labelStyle}>Yil</label>
-                <input type="number" style={inputStyle} value={form.periodYear} onChange={e => setForm({ ...form, periodYear: e.target.value })} />
+                <label style={labelStyle}>Qurilish boshlangan sana</label>
+                <input type="date" required style={inputStyle} value={form.startDate} onChange={(e) => setForm({ ...form, startDate: e.target.value })} />
               </div>
               <div>
-                <label style={labelStyle}>Oy</label>
-                <input type="number" min={1} max={12} style={inputStyle} value={form.periodMonth} onChange={e => setForm({ ...form, periodMonth: e.target.value })} />
+                <label style={labelStyle}>Qurilish yakunlangan sana</label>
+                <input type="date" required style={inputStyle} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
+              </div>
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Loyiha umumiy qiymati (so'mda)</label>
+              <input type="number" min={0} style={inputStyle} value={form.projectTotal} onChange={(e) => setForm({ ...form, projectTotal: e.target.value })} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Qo&apos;shilgan qiymat soliqi summasi (so'mda)</label>
+              <input type="number" min={0} style={inputStyle} value={form.vatTax} onChange={(e) => setForm({ ...form, vatTax: e.target.value })} />
+            </div>
+            <div style={{ marginBottom: 14 }}>
+              <label style={labelStyle}>Ish haqi fondi (so'mda)</label>
+              <input type="number" min={0} style={inputStyle} value={form.payrollFund} onChange={(e) => setForm({ ...form, payrollFund: e.target.value })} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 14 }}>
+              <div>
+                <label style={labelStyle}>Daromad soliqi (so'mda)</label>
+                <input type="number" min={0} style={inputStyle} value={form.incomeTax} onChange={(e) => setForm({ ...form, incomeTax: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Ijtimoiy soliqi (so'mda)</label>
+                <input type="number" min={0} style={inputStyle} value={form.socialTax} onChange={(e) => setForm({ ...form, socialTax: e.target.value })} />
               </div>
             </div>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Xodimlar soni</label>
-              <input type="number" min={0} style={inputStyle} value={form.employeeCount} onChange={e => setForm({ ...form, employeeCount: e.target.value })} />
+              <input type="number" min={0} style={inputStyle} value={form.employeeCount} onChange={(e) => setForm({ ...form, employeeCount: e.target.value })} />
             </div>
             <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Ish haqi fondi (so'm)</label>
-              <input type="number" min={0} style={inputStyle} value={form.payrollFund} onChange={e => setForm({ ...form, payrollFund: e.target.value })} />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Shartnoma summasi (so'm)</label>
-              <input type="number" min={0} style={inputStyle} value={form.contractAmount} onChange={e => setForm({ ...form, contractAmount: e.target.value })} />
-            </div>
-            <div style={{ marginBottom: 14 }}>
-              <label style={labelStyle}>Qurilish turi</label>
-              <input style={inputStyle} placeholder="Masalan: turar-joy, infratuzilma" value={form.constructionType} onChange={e => setForm({ ...form, constructionType: e.target.value })} />
+              <label style={labelStyle}>Obyekt nomi / tavsif</label>
+              <input style={inputStyle} placeholder="Masalan: 12-maktab yangi binosi" value={form.objectName} onChange={(e) => setForm({ ...form, objectName: e.target.value })} />
             </div>
             <div style={{ marginBottom: 20 }}>
               <label style={labelStyle}>Izoh (ixtiyoriy)</label>
-              <textarea rows={2} style={{ ...inputStyle, resize: 'vertical' }} value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+              <textarea rows={2} style={{ ...inputStyle, resize: 'vertical' }} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button onClick={() => setStep(2)} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Davom etish →</button>
+              <button type="button" onClick={() => setStep(2)} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                Davom etish →
+              </button>
             </div>
           </div>
         )}
 
         {step === 2 && (
           <div>
-            <label style={labelStyle}>Elektron fakturalar (PDF, JPG, PNG)</label>
-            <label style={{ display: 'block', border: '2px dashed rgba(255,255,255,0.12)', borderRadius: 10, padding: '28px 16px', textAlign: 'center', cursor: 'pointer', marginBottom: 14 }}>
-              <input type="file" multiple accept=".pdf,.jpg,.jpeg,.png,.webp" onChange={e => setFiles(Array.from(e.target.files || []))} style={{ display: 'none' }} />
-              <div style={{ fontSize: 28, marginBottom: 8 }}>📂</div>
-              <div style={{ fontSize: 13, color: '#9ca3af' }}>Fayllarni bu yerga tashlang yoki bosing</div>
-              <div style={{ fontSize: 11, color: '#6b7280', marginTop: 4 }}>PDF · JPG · PNG · WEBP</div>
-            </label>
-            {files.length > 0 && (
-              <div style={{ marginBottom: 16 }}>
-                {files.map((f, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', background: 'rgba(255,255,255,0.04)', borderRadius: 8, marginBottom: 6, border: '1px solid rgba(255,255,255,0.06)' }}>
-                    <span>📄</span>
-                    <span style={{ flex: 1, fontSize: 12, color: '#e5e7eb' }}>{f.name}</span>
-                    <span style={{ fontSize: 10, color: '#10b981' }}>✓</span>
-                    <button onClick={() => setFiles(files.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', color: '#6b7280', cursor: 'pointer', fontSize: 16 }}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-              <button onClick={() => setStep(1)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>← Orqaga</button>
-              <button onClick={() => setStep(3)} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Davom etish →</button>
-            </div>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div>
             <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: 16, marginBottom: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
               {[
-                ['Davr', `${form.periodMonth}/${form.periodYear}`],
-                ['Xodimlar soni', form.employeeCount || '—'],
+                ['Qurilish boshlangan', form.startDate || '—'],
+                ['Qurilish yakunlangan', form.endDate || '—'],
+                ['Loyiha umumiy qiymati', form.projectTotal ? Number(form.projectTotal).toLocaleString() + " so'm" : '—'],
+                ['QQS summasi', form.vatTax ? Number(form.vatTax).toLocaleString() + " so'm" : '—'],
                 ['Ish haqi fondi', form.payrollFund ? Number(form.payrollFund).toLocaleString() + " so'm" : '—'],
-                ['Shartnoma summasi', form.contractAmount ? Number(form.contractAmount).toLocaleString() + " so'm" : '—'],
-                ['Qurilish turi', form.constructionType || '—'],
-                ['Fayllar soni', files.length + ' ta'],
+                ['Daromad soliqi', form.incomeTax ? Number(form.incomeTax).toLocaleString() + " so'm" : '—'],
+                ['Ijtimoiy soliqi', form.socialTax ? Number(form.socialTax).toLocaleString() + " so'm" : '—'],
+                ['Xodimlar soni', form.employeeCount || '—'],
+                ['Obyekt', form.objectName || '—'],
               ].map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: 12 }}>
                   <span style={{ color: '#6b7280' }}>{k}</span>
-                  <span style={{ color: '#e5e7eb', fontWeight: 500 }}>{v}</span>
+                  <span style={{ color: '#e5e7eb', fontWeight: 500, textAlign: 'right', maxWidth: '58%' }}>{v}</span>
                 </div>
               ))}
             </div>
             <div style={{ background: 'rgba(217,119,6,0.08)', border: '1px solid rgba(217,119,6,0.2)', borderRadius: 10, padding: 12, marginBottom: 20, fontSize: 11, color: '#fbbf24' }}>
-              ⚠ Yuborilgan ma'lumotlar soliq organlari tomonidan tekshiriladi. Noto'g'ri ma'lumot uchun ma'muriy javobgarlik ko'zda tutilgan.
+              ⚠ Yuborilgan ma&apos;lumotlar tekshiriladi. Noto&apos;g&apos;ri ma&apos;lumot uchun javobgarlik qonunchilikka muvofiq.
             </div>
             {msg && (
               <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 14, fontSize: 12, background: msgType === 'success' ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: msgType === 'success' ? '#10b981' : '#ef4444' }}>{msg}</div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <button onClick={() => setStep(2)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>← Orqaga</button>
-              <button onClick={handleSubmit} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Tasdiqlash va yuborish ✓</button>
+              <button type="button" onClick={() => setStep(1)} style={{ padding: '9px 20px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>
+                ← Orqaga
+              </button>
+              <button type="button" onClick={handleSubmit} style={{ padding: '9px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>
+                Tasdiqlash va yuborish ✓
+              </button>
             </div>
           </div>
         )}
 
-        {step === 4 && (
+        {step === 3 && (
           <div style={{ textAlign: 'center', padding: '24px 0' }}>
             <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Hisobot muvaffaqiyatli yuborildi!</div>
-            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 24 }}>Ma'lumotlar saqlandi va tekshiruvga yuborildi</div>
-            <button onClick={() => { setStep(1); setForm({ periodYear: new Date().getFullYear(), periodMonth: new Date().getMonth() + 1, employeeCount: '', payrollFund: '', contractAmount: '', constructionType: '', notes: '' }); setFiles([]); setMsg(''); }} style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>Yangi hisobot →</button>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>Yakuniy hisobot yuborildi!</div>
+            <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 24 }}>Ma&apos;lumotlar saqlandi</div>
+            <button type="button" onClick={resetForm} style={{ padding: '9px 24px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.12)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>
+              Yangi yakuniy hisobot →
+            </button>
           </div>
         )}
       </section>
@@ -1443,26 +1503,16 @@ const HisobotPage = () => {
           {reports.map((r) => (
             <div key={r._id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '14px 16px', fontSize: 13, color: '#cbd5e1' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <span style={{ color: '#fff', fontWeight: 600 }}>{r.periodMonth}/{r.periodYear}</span>
-                <button onClick={() => downloadPdf(r._id)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 11, cursor: 'pointer' }}>PDF eksport</button>
+                <span style={{ color: '#fff', fontWeight: 600 }}>
+                  {r.periodMonth}/{r.periodYear} · {r.constructionType || 'Hisobot'}
+                </span>
+                <button type="button" onClick={() => downloadPdf(r._id)} style={{ padding: '4px 10px', borderRadius: 6, border: 'none', background: 'rgba(255,255,255,0.08)', color: '#fff', fontSize: 11, cursor: 'pointer' }}>
+                  PDF
+                </button>
               </div>
-              <p style={{ color: '#6b7280', fontSize: 12, marginBottom: r.invoices?.length ? 8 : 0 }}>
-                xodimlar: {r.employeeCount}, shartnoma: {r.contractAmount?.toLocaleString()} so'm
-              </p>
-              {r.invoices?.length > 0 && (
-                <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {r.invoices.map((inv) => (
-                    <div key={inv._id || inv.storedName}>
-                      {inv.storedName ? (
-                        <button onClick={() => downloadInvoice(r._id, inv.storedName, inv.fileName)} style={{ background: 'none', border: 'none', color: '#60a5fa', fontSize: 11, cursor: 'pointer', padding: 0 }}>
-                          📎 {inv.fileName}
-                        </button>
-                      ) : (
-                        <span style={{ fontSize: 11 }}>📎 {inv.fileName}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+              <p style={{ color: '#6b7280', fontSize: 12, margin: 0 }}>Xodimlar: {r.employeeCount}, loyiha: {r.contractAmount?.toLocaleString()} so'm</p>
+              {r.notes && (
+                <p style={{ color: '#4b5563', fontSize: 11, marginTop: 8, whiteSpace: 'pre-wrap', maxHeight: 80, overflow: 'hidden' }}>{r.notes.slice(0, 200)}{r.notes.length > 200 ? '…' : ''}</p>
               )}
             </div>
           ))}
@@ -1810,16 +1860,60 @@ const ObektPage = () => {
 const XodimlarPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [xodimlar, setXodimlar] = useState(xodimlarData);
-  const [newXodim, setNewXodim] = useState({ n: '', lav: '', pinfl: '', ihq: '', sana: '', mut: 'Qurilishchi' });
+  const [editCell, setEditCell] = useState(null);
+  const [newXodim, setNewXodim] = useState({
+    n: '',
+    lavozim: LAVOZIMLAR[0],
+    pinfl: '',
+    ihq: '',
+    sana: '',
+    bandlik: 'doimiy',
+    boshatilgan: '',
+  });
   const inputStyle = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: '#0a0f1a', color: '#fff', fontSize: 13, boxSizing: 'border-box', outline: 'none' };
   const labelStyle = { fontSize: 10, color: '#9ca3af', display: 'block', marginBottom: 5, fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5 };
 
+  const holatYozuv = (x) => {
+    if (x.boshatilgan) return "Bo'shatilgan";
+    if (x.bandlik === 'yollanma' || x.holat === 's-yellow') return "Yollanma ishchi";
+    return 'Faol';
+  };
+
   const addXodim = () => {
-    if (newXodim.n && newXodim.lav) {
-      setXodimlar(prev => [...prev, { ...newXodim, holat: 's-green' }]);
-      setNewXodim({ n: '', lav: '', pinfl: '', ihq: '', sana: '', mut: 'Qurilishchi' });
+    if (newXodim.n && newXodim.lavozim) {
+      const holat = newXodim.bandlik === 'yollanma' ? 's-yellow' : 's-green';
+      setXodimlar((prev) => [
+        ...prev,
+        {
+          id: `x${Date.now()}`,
+          n: newXodim.n,
+          lavozim: newXodim.lavozim,
+          pinfl: newXodim.pinfl,
+          ihq: newXodim.ihq,
+          sana: newXodim.sana,
+          bandlik: newXodim.bandlik,
+          boshatilgan: newXodim.boshatilgan || '',
+          holat,
+        },
+      ]);
+      setNewXodim({ n: '', lavozim: LAVOZIMLAR[0], pinfl: '', ihq: '', sana: '', bandlik: 'doimiy', boshatilgan: '' });
       setModalOpen(false);
     }
+  };
+
+  const patchXodim = (id, patch) => {
+    setXodimlar((prev) =>
+      prev.map((x) => {
+        if (x.id !== id) return x;
+        const next = { ...x, ...patch };
+        if (patch.boshatilgan) next.holat = 's-gray';
+        else if (patch.boshatilgan === '') next.holat = next.bandlik === 'yollanma' ? 's-yellow' : 's-green';
+        else if (patch.bandlik === 'yollanma') next.holat = 's-yellow';
+        else if (patch.bandlik === 'doimiy') next.holat = 's-green';
+        return next;
+      })
+    );
+    setEditCell(null);
   };
 
   return (
@@ -1828,29 +1922,77 @@ const XodimlarPage = () => {
         <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600, color: '#fff' }}>Xodimlar ro'yxati</div>
-            <div style={{ fontSize: 11, color: '#6b7280' }}>Rasmiy bandlik — jami {xodimlar.length} nafar</div>
+            <div style={{ fontSize: 11, color: '#6b7280' }}>F.I.Sh. va lavozimni ustiga bosib tahrirlash mumkin · jami {xodimlar.length} nafar</div>
           </div>
-          <button onClick={() => setModalOpen(true)} style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Xodim qo'shish</button>
+          <button onClick={() => setModalOpen(true)} style={{ padding: '7px 14px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>+ Yangi xodim</button>
         </div>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
             <thead>
               <tr style={{ background: 'rgba(255,255,255,0.02)' }}>
-                {['#', 'F.I.Sh', 'Lavozim', 'PINFL', 'Ish haqi', 'Qabul sanasi', 'Holat'].map(h => (
+                {['#', 'F.I.Sh', 'Lavozimi', 'PINFL', 'Ish haqi', 'Qabul sanasi', "Bo'shatilgan sana", 'Holat'].map((h) => (
                   <th key={h} style={{ padding: '10px 14px', textAlign: 'left', fontSize: 10, color: '#6b7280', fontWeight: 500, textTransform: 'uppercase', letterSpacing: 0.5, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {xodimlar.map((x, i) => (
-                <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                <tr key={x.id || i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                   <td style={{ padding: '10px 14px', fontSize: 12, color: '#6b7280' }}>{i + 1}</td>
-                  <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#e5e7eb' }}>{x.n}</td>
-                  <td style={{ padding: '10px 14px', fontSize: 12, color: '#9ca3af' }}>{x.lav}</td>
+                  <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#e5e7eb' }}>
+                    {editCell?.id === x.id && editCell.field === 'n' ? (
+                      <input
+                        autoFocus
+                        style={{ ...inputStyle, padding: '4px 8px' }}
+                        value={editCell.value}
+                        onChange={(e) => setEditCell({ ...editCell, value: e.target.value })}
+                        onBlur={() => patchXodim(x.id, { n: editCell.value })}
+                        onKeyDown={(e) => e.key === 'Enter' && patchXodim(x.id, { n: editCell.value })}
+                      />
+                    ) : (
+                      <button type="button" onClick={() => setEditCell({ id: x.id, field: 'n', value: x.n })} style={{ background: 'none', border: 'none', color: '#e5e7eb', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
+                        {x.n} ✎
+                      </button>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 14px', fontSize: 12, color: '#9ca3af' }}>
+                    {editCell?.id === x.id && editCell.field === 'lavozim' ? (
+                      <select
+                        autoFocus
+                        style={{ ...inputStyle, padding: '4px 8px' }}
+                        value={editCell.value}
+                        onChange={(e) => setEditCell({ ...editCell, value: e.target.value })}
+                        onBlur={() => patchXodim(x.id, { lavozim: editCell.value })}
+                      >
+                        {LAVOZIMLAR.map((l) => (
+                          <option key={l} value={l}>
+                            {l}
+                          </option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button type="button" onClick={() => setEditCell({ id: x.id, field: 'lavozim', value: x.lavozim || x.lav || LAVOZIMLAR[0] })} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', padding: 0 }}>
+                        {x.lavozim || x.lav} ✎
+                      </button>
+                    )}
+                  </td>
                   <td style={{ padding: '10px 14px', fontSize: 11, fontFamily: 'monospace', color: '#6b7280' }}>{x.pinfl}</td>
                   <td style={{ padding: '10px 14px', fontSize: 12, fontWeight: 500, color: '#e5e7eb' }}>{x.ihq} so'm</td>
                   <td style={{ padding: '10px 14px', fontSize: 12, color: '#6b7280' }}>{x.sana}</td>
-                  <td style={{ padding: '10px 14px' }}><span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 10, fontWeight: 500 }} className={getStatusClass(x.holat)}>{x.holat === 's-green' ? 'Faol' : 'Vaqtinchalik'}</span></td>
+                  <td style={{ padding: '10px 14px', fontSize: 12, color: '#6b7280' }}>
+                    <input
+                      type="date"
+                      style={{ ...inputStyle, padding: '4px 8px', maxWidth: 140 }}
+                      value={x.boshatilgan || ''}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        patchXodim(x.id, v ? { boshatilgan: v } : { boshatilgan: '' });
+                      }}
+                    />
+                  </td>
+                  <td style={{ padding: '10px 14px' }}>
+                    <span style={{ padding: '3px 10px', borderRadius: 99, fontSize: 10, fontWeight: 500 }} className={getStatusClass(x.holat)}>{holatYozuv(x)}</span>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1859,29 +2001,60 @@ const XodimlarPage = () => {
       </div>
 
       {modalOpen && (
-        <div onClick={e => e.target === e.currentTarget && setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
+        <div onClick={(e) => e.target === e.currentTarget && setModalOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100 }}>
           <div style={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, padding: 28, width: 440, maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Yangi xodim qo'shish</div>
-              <button onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 20, cursor: 'pointer' }}>×</button>
+              <button type="button" onClick={() => setModalOpen(false)} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 20, cursor: 'pointer' }}>×</button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[['F.I.Sh', 'n', 'Karimov Alisher Bahodir o\'g\'li', 'text'], ['Lavozim', 'lav', 'Usta duvol', 'text'], ['PINFL', 'pinfl', '12345678901234', 'text'], ['Ish haqi (so\'m)', 'ihq', '3000000', 'number'], ['Qabul sanasi', 'sana', '', 'date']].map(([label, key, placeholder, type]) => (
-                <div key={key}>
-                  <label style={labelStyle}>{label}</label>
-                  <input type={type} style={inputStyle} placeholder={placeholder} maxLength={key === 'pinfl' ? 14 : undefined} value={newXodim[key]} onChange={e => setNewXodim({ ...newXodim, [key]: e.target.value })} />
-                </div>
-              ))}
               <div>
-                <label style={labelStyle}>Mutaxassislik</label>
-                <select style={inputStyle} value={newXodim.mut} onChange={e => setNewXodim({ ...newXodim, mut: e.target.value })}>
-                  <option>Qurilishchi</option><option>Elektrik</option><option>Santexnik</option><option>Usta</option><option>Muhandis</option>
+                <label style={labelStyle}>F.I.Sh</label>
+                <input type="text" style={inputStyle} placeholder="Karimov Alisher Bahodir o'g'li" value={newXodim.n} onChange={(e) => setNewXodim({ ...newXodim, n: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Bandlik turi</label>
+                <div style={{ display: 'flex', gap: 16, marginTop: 6 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e5e7eb', cursor: 'pointer' }}>
+                    <input type="radio" name="bandlik" checked={newXodim.bandlik === 'doimiy'} onChange={() => setNewXodim({ ...newXodim, bandlik: 'doimiy' })} />
+                    Doimiy
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#e5e7eb', cursor: 'pointer' }}>
+                    <input type="radio" name="bandlik" checked={newXodim.bandlik === 'yollanma'} onChange={() => setNewXodim({ ...newXodim, bandlik: 'yollanma' })} />
+                    Yollanma
+                  </label>
+                </div>
+              </div>
+              <div>
+                <label style={labelStyle}>Lavozimi</label>
+                <select style={inputStyle} value={newXodim.lavozim} onChange={(e) => setNewXodim({ ...newXodim, lavozim: e.target.value })}>
+                  {LAVOZIMLAR.map((l) => (
+                    <option key={l} value={l}>
+                      {l}
+                    </option>
+                  ))}
                 </select>
+              </div>
+              <div>
+                <label style={labelStyle}>PINFL</label>
+                <input type="text" style={inputStyle} placeholder="12345678901234" maxLength={14} value={newXodim.pinfl} onChange={(e) => setNewXodim({ ...newXodim, pinfl: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Ish haqi (so'm)</label>
+                <input type="number" style={inputStyle} placeholder="3000000" value={newXodim.ihq} onChange={(e) => setNewXodim({ ...newXodim, ihq: e.target.value })} />
+              </div>
+              <div>
+                <label style={labelStyle}>Qabul sanasi</label>
+                <input type="date" style={inputStyle} value={newXodim.sana} onChange={(e) => setNewXodim({ ...newXodim, sana: e.target.value })} />
+              </div>
+              <div style={{ paddingTop: 8, borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                <label style={labelStyle}>Bo'shatilgan sana (agar mavjud bo'lsa)</label>
+                <input type="date" style={inputStyle} value={newXodim.boshatilgan} onChange={(e) => setNewXodim({ ...newXodim, boshatilgan: e.target.value })} />
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
-              <button onClick={() => setModalOpen(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>Bekor</button>
-              <button onClick={addXodim} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Saqlash</button>
+              <button type="button" onClick={() => setModalOpen(false)} style={{ padding: '8px 18px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)', background: 'transparent', color: '#9ca3af', fontSize: 13, cursor: 'pointer' }}>Bekor</button>
+              <button type="button" onClick={addXodim} style={{ padding: '8px 18px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Saqlash</button>
             </div>
           </div>
         </div>
@@ -1953,7 +2126,7 @@ const XabarlarPage = () => (
 // -------------------- MAIN --------------------
 const PAGE_TITLES = {
   dashboard: 'Korxona Dashboard',
-  hisobot: 'Hisobot Yuklash',
+  hisobot: 'Yakuniy hisobot',
   obekt: "Ob'ekt Ro'yxatga Olish",
   xodimlar: "Xodimlar Ro'yxati",
   shartnomalar: 'Shartnomalar',
