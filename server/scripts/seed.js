@@ -1,5 +1,7 @@
 /**
- * Bir martalik test foydalanuvchilari (parol: demo1234).
+ * Bir martalik test foydalanuvchilari.
+ * Har bir email uchun parol: server/.env dagi SEED_PASSWORD_<ROL> (pastda ro‘yxat).
+ * Agar alohida kalit bo‘lmasa — SEED_PASSWORD, u ham bo‘lmasa demo1234.
  * Ishga tushirish: npm run seed (rootdan) yoki node server/scripts/seed.js
  */
 import dotenv from 'dotenv';
@@ -14,42 +16,54 @@ import { Application, APPLICATION_STATUS } from '../src/models/Application.js';
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/soliqnazorat';
 
+/** Har bir email uchun .env kaliti (qiymat — parol matni) */
+const PASSWORD_ENV_BY_EMAIL = {
+  'company@demo.uz': 'SEED_PASSWORD_COMPANY',
+  'gasn@demo.uz': 'SEED_PASSWORD_GASN',
+  'soliq@demo.uz': 'SEED_PASSWORD_SOLIQ',
+  'mehnat@demo.uz': 'SEED_PASSWORD_MEHNAT',
+};
+
+function resolvePlainPassword(email) {
+  const envKey = PASSWORD_ENV_BY_EMAIL[email];
+  const specific = envKey ? process.env[envKey] : '';
+  const globalFallback = process.env.SEED_PASSWORD || 'demo1234';
+  return (specific && String(specific).trim()) || globalFallback;
+}
+
 const users = [
   {
     email: 'company@demo.uz',
-    password: 'demo1234',
     role: ROLES.CONSTRUCTION_COMPANY,
     organizationName: 'Demo Qurilish MCHJ',
   },
   {
     email: 'gasn@demo.uz',
-    password: 'demo1234',
     role: ROLES.GASN,
     fullName: 'GASN inspektor',
   },
   {
     email: 'soliq@demo.uz',
-    password: 'demo1234',
     role: ROLES.TAX_INSPECTION,
     fullName: 'Soliq inspektor',
   },
   {
     email: 'mehnat@demo.uz',
-    password: 'demo1234',
     role: ROLES.LABOR_INSPECTION,
     fullName: 'Mehnat inspektor',
   },
 ];
 
 await mongoose.connect(mongoUri);
-const hash = await bcrypt.hash('demo1234', 10);
 
 for (const u of users) {
+  const plain = resolvePlainPassword(u.email);
+  const passwordHash = await bcrypt.hash(plain, 10);
   await User.findOneAndUpdate(
     { email: u.email },
     {
       email: u.email,
-      passwordHash: hash,
+      passwordHash,
       role: u.role,
       organizationName: u.organizationName || '',
       fullName: u.fullName || '',

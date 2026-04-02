@@ -2,11 +2,21 @@
 
 const companyId = '64f0a1b2c3d4e5f6a7b8c9d0';
 
+/** Vite: client/.env — har bir email uchun alohida yoki VITE_DEMO_PASSWORD zaxira */
+const fall = import.meta.env.VITE_DEMO_PASSWORD || 'demo1234';
+const pw = (email) =>
+  ({
+    'company@demo.uz': import.meta.env.VITE_DEMO_PASSWORD_COMPANY || fall,
+    'gasn@demo.uz': import.meta.env.VITE_DEMO_PASSWORD_GASN || fall,
+    'soliq@demo.uz': import.meta.env.VITE_DEMO_PASSWORD_SOLIQ || fall,
+    'mehnat@demo.uz': import.meta.env.VITE_DEMO_PASSWORD_MEHNAT || fall,
+  }[email] || fall);
+
 export const staticUsers = [
   {
     id: companyId,
     email: 'company@demo.uz',
-    password: 'demo1234',
+    password: pw('company@demo.uz'),
     role: 'construction_company',
     organizationName: 'Demo Qurilish MCHJ',
     fullName: '',
@@ -14,7 +24,7 @@ export const staticUsers = [
   {
     id: '64f0a1b2c3d4e5f6a7b8c9d1',
     email: 'gasn@demo.uz',
-    password: 'demo1234',
+    password: pw('gasn@demo.uz'),
     role: 'gasn',
     organizationName: '',
     fullName: 'GASN inspektor',
@@ -22,7 +32,7 @@ export const staticUsers = [
   {
     id: '64f0a1b2c3d4e5f6a7b8c9d2',
     email: 'soliq@demo.uz',
-    password: 'demo1234',
+    password: pw('soliq@demo.uz'),
     role: 'tax_inspection',
     organizationName: '',
     fullName: 'Soliq',
@@ -30,7 +40,7 @@ export const staticUsers = [
   {
     id: '64f0a1b2c3d4e5f6a7b8c9d3',
     email: 'mehnat@demo.uz',
-    password: 'demo1234',
+    password: pw('mehnat@demo.uz'),
     role: 'labor_inspection',
     organizationName: '',
     fullName: 'Mehnat',

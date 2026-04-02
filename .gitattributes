@@ -1,0 +1,5 @@
+# Bir xil qator oxirlari (LF) — Windows/Git ogohlantirishlarini kamaytiradi
+* text=auto eol=lf
+
+# Ikkilik fayllar
+*.{png,jpg,jpeg,gif,webp,ico,pdf,woff,woff2} binary

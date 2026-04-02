@@ -55,6 +55,25 @@ router.get('/me', authRequired, loadUser, (req, res) => {
   res.json({ user: req.user });
 });
 
+/** Joriy foydalanuvchi o‘z parolini almashtiradi */
+router.patch('/password', authRequired, async (req, res) => {
+  const { currentPassword, newPassword } = req.body;
+  if (currentPassword == null || newPassword == null) {
+    return res.status(400).json({ error: 'currentPassword va newPassword majburiy' });
+  }
+  const next = String(newPassword);
+  if (next.length < 8) {
+    return res.status(400).json({ error: 'Yangi parol kamida 8 belgi bo‘lishi kerak' });
+  }
+  const user = await User.findById(req.userId);
+  if (!user) return res.status(404).json({ error: 'Foydalanuvchi topilmadi' });
+  const ok = await bcrypt.compare(String(currentPassword), user.passwordHash);
+  if (!ok) return res.status(401).json({ error: 'Joriy parol noto‘g‘ri' });
+  user.passwordHash = await bcrypt.hash(next, 10);
+  await user.save();
+  res.json({ ok: true });
+});
+
 function signToken(user) {
   return jwt.sign({ sub: user._id.toString(), role: user.role }, getJwtSecret(), { expiresIn: '7d' });
 }
