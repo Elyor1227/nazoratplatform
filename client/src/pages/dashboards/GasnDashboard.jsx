@@ -132,10 +132,19 @@ const BarChart = () => {
   return <canvas ref={chartRef} className="h-full w-full" />;
 };
 
-const StatCard = ({ icon, label, value, sub, color = 'cyan' }) => {
+const StatCard = ({ icon, label, value, sub, color = 'cyan', onClick }) => {
   const colorMap = { cyan: 'text-cyan-400', yellow: 'text-yellow-400', red: 'text-red-400', green: 'text-green-400' };
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#111827] p-3 sm:p-4">
+    <div
+      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#111827] p-3 sm:p-4 ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (!onClick) return;
+        if (e.key === 'Enter' || e.key === ' ') onClick();
+      }}
+    >
       <span className="absolute right-2 top-2 text-lg opacity-10 sm:text-xl">{icon}</span>
       <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[#7a8eaa] sm:text-[11px]">{label}</div>
       <div className={`text-lg font-bold sm:text-2xl ${colorMap[color]}`}>{value}</div>
@@ -281,8 +290,9 @@ function KorxonaModal({ open, onClose, modal, reports }) {
   );
 }
 
-const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpenKorxona }) => {
+const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpenKorxona, kpi, onGoPage }) => {
   const stats = summary?.stats;
+  const K = kpi || {};
   const sortedProjects = useMemo(
     () =>
       [...projects].sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0)).slice(0, 12),
@@ -312,16 +322,86 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
   return (
     <div>
       <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-        <StatCard icon="📥" label="Jami kelib tushgan arizalar" value={kpiMain.jamiArizalar} sub="" color="cyan" />
-        <StatCard icon="✅" label="Ma’qullangan arizalar soni" value={kpiMain.maqullangan} sub="" color="green" />
-        <StatCard icon="⛔" label="Rad etilgan arizalar soni" value={kpiMain.radEtilgan} sub="" color="red" />
-        <StatCard icon="🏁" label="Yakunlangan obyektlar soni" value={kpiMain.yakunlanganObyektlar} sub="" color="green" />
-        <StatCard icon="🔧" label="Qurilish davom etayotgan obyektlar" value={kpiMain.davomEtotgan} sub="" color="cyan" />
-        <StatCard icon="⏸️" label="Qurilishi to‘xtatilgan obyektlar" value={kpiMain.toxtatilgan} sub="" color="yellow" />
-        <StatCard icon="💰" label="Umumiy loyiha qiymati" value={kpiMain.umumiyLoyihaQiymati} sub="" color="yellow" />
-        <StatCard icon="👷" label="Umumiy ish haqi fondi" value={kpiMain.umumiyIshHaqiFondi} sub="" color="cyan" />
-        <StatCard icon="👥" label="Umumiy ishchilar soni" value={kpiMain.umumiyIshchilar.toLocaleString('uz-UZ')} sub="" color="green" />
-        <StatCard icon="⚠️" label="Smeta nomuvofiqlik" value={stats?.alertsOpen ?? kpiMain.smetaNomuvofiqlik} sub="ochiq signal" color="red" />
+        <StatCard
+          icon="📥"
+          label="Jami kelib tushgan arizalar"
+          value={K.jamiArizalar ?? kpiMain.jamiArizalar}
+          sub=""
+          color="cyan"
+          onClick={() => onGoPage?.('arizalar', null)}
+        />
+        <StatCard
+          icon="✅"
+          label="Ma’qullangan arizalar soni"
+          value={K.maqullangan ?? kpiMain.maqullangan}
+          sub=""
+          color="green"
+          onClick={() => onGoPage?.('arizalar', 'approved')}
+        />
+        <StatCard
+          icon="⛔"
+          label="Rad etilgan arizalar soni"
+          value={K.radEtilgan ?? kpiMain.radEtilgan}
+          sub=""
+          color="red"
+          onClick={() => onGoPage?.('arizalar', 'rejected')}
+        />
+        <StatCard
+          icon="🏁"
+          label="Yakunlangan obyektlar soni"
+          value={K.yakunlanganObyektlar ?? kpiMain.yakunlanganObyektlar}
+          sub=""
+          color="green"
+          onClick={() => onGoPage?.('obyektlar')}
+        />
+        <StatCard
+          icon="🔧"
+          label="Qurilish davom etayotgan obyektlar"
+          value={K.davomEtotgan ?? kpiMain.davomEtotgan}
+          sub=""
+          color="cyan"
+          onClick={() => onGoPage?.('obyektlar')}
+        />
+        <StatCard
+          icon="⏸️"
+          label="Qurilishi to‘xtatilgan obyektlar"
+          value={K.toxtatilgan ?? kpiMain.toxtatilgan}
+          sub=""
+          color="yellow"
+          onClick={() => onGoPage?.('obyektlar')}
+        />
+        <StatCard
+          icon="💰"
+          label="Umumiy loyiha qiymati"
+          value={K.umumiyLoyihaQiymati ?? kpiMain.umumiyLoyihaQiymati}
+          sub=""
+          color="yellow"
+          onClick={() => onGoPage?.('obyektlar')}
+        />
+        <StatCard
+          icon="👷"
+          label="Umumiy ish haqi fondi"
+          value={K.umumiyIshHaqiFondi ?? kpiMain.umumiyIshHaqiFondi}
+          sub=""
+          color="cyan"
+          onClick={() => onGoPage?.('obyektlar')}
+        />
+        <StatCard
+          icon="👥"
+          label="Umumiy ishchilar soni"
+          value={typeof K.umumiyIshchilar === 'number' ? K.umumiyIshchilar.toLocaleString('uz-UZ') : kpiMain.umumiyIshchilar.toLocaleString('uz-UZ')}
+          sub=""
+          color="green"
+          onClick={() => onGoPage?.('obyektlar')}
+        />
+        <StatCard
+          icon="⚠️"
+          label="Smeta nomuvofiqlik"
+          value={K.smetaNomuvofiqlik ?? stats?.alertsOpen ?? kpiMain.smetaNomuvofiqlik}
+          sub="ochiq signal"
+          color="red"
+          onClick={() => onGoPage?.('taqqoslash')}
+        />
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
@@ -841,7 +921,7 @@ function statusLabel(status) {
   return { text: 'Kutilmoqda', cls: 'text-amber-400' };
 }
 
-const ApplicationsPage = ({ onError }) => {
+const ApplicationsPage = ({ onError, statusFilter }) => {
   const { user } = useAuth();
   const isGasn = user?.role === 'gasn';
   const [apps, setApps] = useState([]);
@@ -863,6 +943,8 @@ const ApplicationsPage = ({ onError }) => {
   useEffect(() => {
     load();
   }, []);
+
+  const visibleApps = statusFilter ? apps.filter((a) => a.status === statusFilter) : apps;
 
   const setFio = (id, v) => setFioInputs((p) => ({ ...p, [id]: v }));
 
@@ -935,14 +1017,14 @@ const ApplicationsPage = ({ onError }) => {
             </tr>
           </thead>
           <tbody>
-            {apps.length === 0 ? (
+            {visibleApps.length === 0 ? (
               <tr>
                 <td colSpan={isGasn ? 8 : 4} className="px-4 py-8 text-center text-[#7a8eaa]">
                   Hozircha ariza yo‘q.
                 </td>
               </tr>
             ) : (
-              apps.map((app) => {
+              visibleApps.map((app) => {
                 const st = statusLabel(app.status);
                 const dateStr = app.createdAt
                   ? new Date(app.createdAt).toLocaleDateString('uz-UZ')
@@ -1038,6 +1120,8 @@ export default function GasnDashboard() {
   const [projects, setProjects] = useState([]);
   const [companies, setCompanies] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [applicationsStatusFilter, setApplicationsStatusFilter] = useState(null);
   const [compareId, setCompareId] = useState('');
   const [compareResult, setCompareResult] = useState(null);
   const [msg, setMsg] = useState('');
@@ -1054,13 +1138,15 @@ export default function GasnDashboard() {
     if (!token) return;
     Promise.all([
       api.get('/dashboard/summary'),
+      api.get('/applications'),
       api.get('/reports'),
       api.get('/projects'),
       api.get('/dashboard/companies'),
       api.get('/alerts'),
     ])
-      .then(([a, r, p, co, al]) => {
+      .then(([a, apps, r, p, co, al]) => {
         setSummary(a.data);
+        setApplications(apps.data.applications || []);
         setReports(r.data.reports || []);
         setProjects(p.data.projects || []);
         setCompanies(co.data.companies || []);
@@ -1068,6 +1154,67 @@ export default function GasnDashboard() {
       })
       .catch(() => setMsg("Ma'lumot yuklanmadi"));
   }, [token]);
+
+  const goPage = (page, appsFilter = null) => {
+    setApplicationsStatusFilter(page === 'arizalar' ? appsFilter : null);
+    setActivePage(page);
+  };
+
+  const computedKpi = useMemo(() => {
+    const apps = applications || [];
+    const approvedCount = apps.filter((a) => a.status === 'approved').length;
+    const rejectedCount = apps.filter((a) => a.status === 'rejected').length;
+
+    const latestReportByCompany = new Map();
+    for (const r of reports || []) {
+      const cid = String(r.companyUserId);
+      const key = (Number(r.periodYear || 0) * 100 + Number(r.periodMonth || 0));
+      const existing = latestReportByCompany.get(cid);
+      if (!existing) {
+        latestReportByCompany.set(cid, { report: r, key });
+      } else if (key > existing.key) {
+        latestReportByCompany.set(cid, { report: r, key });
+      }
+    }
+
+    const toNum = (v) => (v == null || Number.isNaN(Number(v)) ? 0 : Number(v));
+    let yakunlangan = 0;
+    let davom = 0;
+    let toxtatilgan = 0;
+    let totalContract = 0;
+    let totalPayroll = 0;
+    let totalEmployees = 0;
+
+    for (const pr of projects || []) {
+      totalContract += toNum(pr.smetaContractSum);
+      totalPayroll += toNum(pr.smetaPayrollEstimate);
+      totalEmployees += toNum(pr.smetaEmployeeCount);
+
+      const rep = latestReportByCompany.get(String(pr.companyUserId))?.report ?? null;
+      const { holat } = holatFromProjectReport(pr, rep);
+      if (holat === 'b-green') yakunlangan++;
+      else if (holat === 'b-red') toxtatilgan++;
+      else if (holat === 'b-blue') davom++;
+    }
+
+    const formatMlrd = (n) => {
+      const mlrd = n / 1_000_000_000;
+      return `${mlrd.toLocaleString('uz-UZ', { maximumFractionDigits: 2 })} mlrd so‘m`;
+    };
+
+    return {
+      jamiArizalar: apps.length,
+      maqullangan: approvedCount,
+      radEtilgan: rejectedCount,
+      yakunlanganObyektlar: yakunlangan,
+      davomEtotgan: davom,
+      toxtatilgan,
+      umumiyLoyihaQiymati: formatMlrd(totalContract),
+      umumiyIshHaqiFondi: formatMlrd(totalPayroll),
+      umumiyIshchilar: totalEmployees,
+      smetaNomuvofiqlik: summary?.stats?.alertsOpen ?? 0,
+    };
+  }, [applications, projects, reports, summary]);
 
   const runCompare = async () => {
     setMsg('');
@@ -1108,6 +1255,8 @@ export default function GasnDashboard() {
             alerts={alerts}
             companyById={companyById}
             onOpenKorxona={setKorxonaModal}
+            kpi={computedKpi}
+            onGoPage={goPage}
           />
         );
       case 'obyektlar':
@@ -1131,7 +1280,7 @@ export default function GasnDashboard() {
           <ReportsPage reports={reports} companyById={companyById} downloadPdf={downloadPdf} onOpenKorxona={setKorxonaModal} />
         );
       case 'arizalar':
-        return <ApplicationsPage onError={setMsg} />;
+        return <ApplicationsPage onError={setMsg} statusFilter={applicationsStatusFilter} />;
       default:
         return (
           <DashboardPage
@@ -1141,6 +1290,8 @@ export default function GasnDashboard() {
             alerts={alerts}
             companyById={companyById}
             onOpenKorxona={setKorxonaModal}
+            kpi={computedKpi}
+            onGoPage={goPage}
           />
         );
     }
@@ -1148,7 +1299,7 @@ export default function GasnDashboard() {
 
   return (
     <div className="min-h-screen bg-[#0b1120] text-[#e6edf8]">
-      <Sidebar activePage={activePage} setActivePage={setActivePage} projectsCount={projects.length} />
+      <Sidebar activePage={activePage} setActivePage={(id) => goPage(id, null)} projectsCount={projects.length} />
       <KorxonaModal open={!!korxonaModal} onClose={() => setKorxonaModal(null)} modal={korxonaModal} reports={reports} />
 
       <div className="ml-0 flex flex-col sm:ml-56 lg:ml-60">

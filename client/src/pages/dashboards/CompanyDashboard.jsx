@@ -65,7 +65,7 @@ const getStatusClass = (type) => {
 const NAV_ITEMS = [
   { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
   { id: 'hisobot', icon: '📋', label: 'Yakuniy hisobot' },
-  { id: 'obekt', icon: '🏗️', label: "Ob'ekt — DAQNI arizasi" },
+  { id: 'obekt', icon: '🏗️', label: "Obyekt Ro'yxatga Olish" },
   { id: 'xodimlar', icon: '👷', label: "Xodimlar ro'yxati" },
 ];
 
@@ -690,7 +690,7 @@ const ObektPage = () => {
   return (
     <div>
       <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#67e8f9' }}>Ob’ektni ro‘yxatga olish — DAQNI arizasi</div>
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#67e8f9' }}>Obyekt Ro'yxatga Olish</div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
           Bitta ariza orqali yuboring. GASN ko‘rib chiqadi, xodimga bog‘laydi va tasdiqlaydi. Tasdiqlangan obyektlar pastda ro‘yxatda ko‘rinadi.
         </div>
@@ -1592,7 +1592,7 @@ const XodimlarPage = () => {
 const PAGE_TITLES = {
   dashboard: 'Korxona Dashboard',
   hisobot: 'Yakuniy hisobot',
-  obekt: "Ob'ekt — DAQNI arizasi",
+  obekt: "Obyekt Ro'yxatga Olish",
   xodimlar: "Xodimlar Ro'yxati",
 };
 
