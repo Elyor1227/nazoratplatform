@@ -104,6 +104,14 @@ let alerts = [
 
 const gasnId = '64f0a1b2c3d4e5f6a7b8c9d1';
 
+/** Statik demo: DAQNI arizaga biriktirish uchun */
+export const gasnInspectors = [
+  { id: 'g1', fio: 'Karimov A.A.', position: 'Bosh inspektor' },
+  { id: 'g2', fio: 'Tursunov B.B.', position: 'Inspektor' },
+  { id: 'g3', fio: 'Siddiqov J.J.', position: 'Katta inspektor' },
+  { id: 'g4', fio: 'Rahimov D.D.', position: 'Inspektor' },
+];
+
 let applications = [
   {
     _id: '64app01b2c3d4e5f6a7b8c9a1',
@@ -112,6 +120,14 @@ let applications = [
     notes: '',
     status: 'pending',
     gasnInspectorFio: '',
+    attachments: [
+      {
+        _id: '64att01',
+        fileName: 'loyiha-smeta-qismi.pdf',
+        storedName: 'demo-smeta-qismi.pdf',
+        step: 2,
+      },
+    ],
     createdAt: new Date('2025-03-25').toISOString(),
   },
   {
@@ -121,6 +137,7 @@ let applications = [
     notes: '',
     status: 'pending',
     gasnInspectorFio: 'Karimov A.A.',
+    attachments: [],
     createdAt: new Date('2025-03-26').toISOString(),
   },
   {
@@ -131,6 +148,7 @@ let applications = [
     status: 'approved',
     gasnInspectorFio: 'Tursunov B.B.',
     reviewedByUserId: gasnId,
+    attachments: [],
     createdAt: new Date('2025-03-20').toISOString(),
   },
 ];

@@ -21,7 +21,7 @@ const fayllar = [
 
 const xabarlar = [
   { from: 'Soliq inspeksiyasi', text: '2025-Q4 hisobotingiz tasdiqlandi.', time: 'Bugun 08:30', type: 's-green' },
-  { from: 'GASN', text: 'Loyiha-smeta va hisobot ko‘rsatkichlari tekshiruvi rejalashtirildi.', time: 'Kecha 16:45', type: 's-yellow' },
+  { from: 'DAQNI', text: 'Loyiha-smeta va hisobot ko‘rsatkichlari tekshiruvi rejalashtirildi.', time: 'Kecha 16:45', type: 's-yellow' },
   { from: 'Tizim', text: '2025-Q1 hisobotini topshirish muddati — 10 aprel 2026.', time: '27.03.2026', type: 's-blue' },
 ];
 
@@ -63,10 +63,10 @@ const getStatusClass = (type) => {
 
 // -------------------- SIDEBAR --------------------
 const NAV_ITEMS = [
-  { id: 'dashboard', icon: '⊞', label: 'Dashboard' },
-  { id: 'hisobot', icon: '📋', label: 'Yakuniy hisobot' },
+  { id: 'dashboard', icon: '⊞', label: 'Bosh sahifa' },
   { id: 'obekt', icon: '🏗️', label: "Obyekt Ro'yxatga Olish" },
   { id: 'xodimlar', icon: '👷', label: "Xodimlar ro'yxati" },
+  { id: 'hisobot', icon: '📋', label: 'Yakuniy hisobot' },
 ];
 
 const Sidebar = ({ activePage, setActivePage, logout }) => (
@@ -223,6 +223,8 @@ const DashboardPage = ({ setActivePage }) => (
 const emptyYakuniyForm = () => ({
   startDate: '',
   endDate: '',
+  periodYear: String(new Date().getFullYear()),
+  periodMonth: String(new Date().getMonth() + 1),
   projectTotal: '',
   vatTax: '',
   payrollFund: '',
@@ -275,10 +277,19 @@ const HisobotPage = () => {
       setMsgType('error');
       return;
     }
+    const periodYear = Number(form.periodYear);
+    const periodMonth = Number(form.periodMonth);
+    if (!Number.isFinite(periodYear) || periodYear < 2000 || periodYear > 2100) {
+      setMsg('Hisobot yilini to‘g‘ri kiriting');
+      setMsgType('error');
+      return;
+    }
+    if (!Number.isFinite(periodMonth) || periodMonth < 1 || periodMonth > 12) {
+      setMsg('Hisobot oyi 1–12 orasida bo‘lishi kerak');
+      setMsgType('error');
+      return;
+    }
     try {
-      const end = new Date(form.endDate);
-      const periodYear = end.getFullYear();
-      const periodMonth = end.getMonth() + 1;
       const fd = new FormData();
       fd.append('periodYear', String(periodYear));
       fd.append('periodMonth', String(periodMonth));
@@ -389,6 +400,36 @@ const HisobotPage = () => {
                 <input type="date" required style={inputStyle} value={form.endDate} onChange={(e) => setForm({ ...form, endDate: e.target.value })} />
               </div>
             </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+              <div>
+                <label style={labelStyle}>Hisobot davri — yil</label>
+                <input
+                  type="number"
+                  min={2000}
+                  max={2100}
+                  style={inputStyle}
+                  value={form.periodYear}
+                  onChange={(e) => setForm({ ...form, periodYear: e.target.value })}
+                />
+              </div>
+              <div>
+                <label style={labelStyle}>Hisobot davri — oy</label>
+                <select
+                  style={inputStyle}
+                  value={form.periodMonth}
+                  onChange={(e) => setForm({ ...form, periodMonth: e.target.value })}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1)}>
+                      {i + 1}-oy
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <p style={{ fontSize: 11, color: '#6b7280', margin: '-8px 0 16px' }}>
+              Hisobot qaysi yil va oy uchun ekanini mustaqil tanlashingiz mumkin; bir xil davr uchun bir nechta yuborish mumkin.
+            </p>
             <div style={{ marginBottom: 14 }}>
               <label style={labelStyle}>Loyiha umumiy qiymati (so'mda)</label>
               <input type="number" min={0} style={inputStyle} value={form.projectTotal} onChange={(e) => setForm({ ...form, projectTotal: e.target.value })} />
@@ -597,6 +638,21 @@ const companyAppStatus = (s) => {
   return { text: 'Kutilmoqda', cls: 's-yellow' };
 };
 
+const MAX_STEP_FILES = 25;
+function mergeUploadedFiles(existing, fileList) {
+  const merged = [...(existing || []), ...Array.from(fileList || [])];
+  const seen = new Set();
+  const out = [];
+  for (const f of merged) {
+    const key = `${f.name}-${f.size}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      out.push(f);
+    }
+  }
+  return out.slice(0, MAX_STEP_FILES);
+}
+
 const ObektPage = () => {
   const [applications, setApplications] = useState([]);
   const [objectName, setObjectName] = useState('');
@@ -609,6 +665,8 @@ const ObektPage = () => {
   const [stepStatus, setStepStatus] = useState({ 1: 'idle', 2: 'idle', 3: 'idle', 4: 'idle', 5: 'idle' });
   const [stepFiles, setStepFiles] = useState({ 2: [], 3: [], 4: [], 5: [] });
   const [submittedObjectName, setSubmittedObjectName] = useState('');
+  const [currentApplicationId, setCurrentApplicationId] = useState(null);
+  const [uploadingStep, setUploadingStep] = useState(false);
 
   const load = async () => {
     try {
@@ -643,10 +701,13 @@ const ObektPage = () => {
     setMsg('');
     setSending(true);
     try {
-      await api.post('/applications', {
+      const res = await api.post('/applications', {
         objectName: objectName.trim(),
         notes: notes.trim(),
       });
+      const created = res.data?.application ?? res.data;
+      const newId = created?._id ?? created?.id;
+      setCurrentApplicationId(newId != null ? String(newId) : null);
       setSubmittedObjectName(objectName.trim());
       setStepStatus((s) => ({ ...s, 1: 'done' }));
       setApplicationSent(true);
@@ -654,6 +715,12 @@ const ObektPage = () => {
       setObjectName('');
       setNotes('');
       await load();
+      if (!newId) {
+        const { data: d2 } = await api.get('/applications');
+        const first = (d2.applications || [])[0];
+        const fallback = first?._id ?? first?.id;
+        if (fallback != null) setCurrentApplicationId(String(fallback));
+      }
     } catch (err) {
       setMsg(err.response?.data?.error || 'Yuborilmadi');
     } finally {
@@ -661,15 +728,33 @@ const ObektPage = () => {
     }
   };
 
-  const handleUpload = (stepNum) => {
+  const handleUpload = async (stepNum) => {
     if (!stepFiles[stepNum] || stepFiles[stepNum].length === 0) {
       setMsg('Iltimos, hujjat(lar) yuklang');
       return;
     }
+    if (!currentApplicationId) {
+      setMsg('Ariza ID topilmadi — sahifani yangilab, qaytadan ariza yuboring.');
+      return;
+    }
     setMsg('');
-    setStepStatus((s) => ({ ...s, [stepNum]: 'done' }));
-    if (stepNum < 5) setActiveStep(stepNum + 1);
-    else setMsg("Barcha bosqichlar muvaffaqiyatli yakunlandi!");
+    setUploadingStep(true);
+    try {
+      const fd = new FormData();
+      fd.append('step', String(stepNum));
+      for (const f of stepFiles[stepNum]) {
+        fd.append('files', f);
+      }
+      const q = encodeURIComponent(String(stepNum));
+      await api.post(`/applications/${currentApplicationId}/attachments?step=${q}`, fd);
+      setStepStatus((s) => ({ ...s, [stepNum]: 'done' }));
+      if (stepNum < 5) setActiveStep(stepNum + 1);
+      else setMsg("Barcha bosqichlar muvaffaqiyatli yakunlandi!");
+    } catch (err) {
+      setMsg(err.response?.data?.error || 'Fayllar yuklanmadi');
+    } finally {
+      setUploadingStep(false);
+    }
   };
 
   const approved = applications.filter((a) => a.status === 'approved');
@@ -692,7 +777,7 @@ const ObektPage = () => {
       <div style={{ background: 'rgba(6,182,212,0.08)', border: '1px solid rgba(6,182,212,0.25)', borderRadius: 12, padding: '14px 18px', marginBottom: 20 }}>
         <div style={{ fontSize: 12, fontWeight: 600, color: '#67e8f9' }}>Obyekt Ro'yxatga Olish</div>
         <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
-          Bitta ariza orqali yuboring. GASN ko‘rib chiqadi, xodimga bog‘laydi va tasdiqlaydi. Tasdiqlangan obyektlar pastda ro‘yxatda ko‘rinadi.
+          Bitta ariza orqali yuboring. DAQNI ko‘rib chiqadi, xodimga bog‘laydi va tasdiqlaydi. Tasdiqlangan obyektlar pastda ro‘yxatda ko‘rinadi.
         </div>
       </div>
 
@@ -856,11 +941,15 @@ const ObektPage = () => {
                       type="file"
                       multiple
                       accept=".pdf"
-                      onChange={(e) => setStepFiles((s) => ({ ...s, 2: Array.from(e.target.files || []) }))}
+                      onChange={(e) => {
+                        const add = Array.from(e.target.files || []);
+                        e.target.value = '';
+                        setStepFiles((s) => ({ ...s, 2: mergeUploadedFiles(s[2], add) }));
+                      }}
                       style={{ display: 'none' }}
                     />
                     <div style={{ fontSize: 28, marginBottom: 8 }}>📂</div>
-                    <div style={{ fontSize: 13, color: '#9ca3af' }}>PDF fayllarni yuklang</div>
+                    <div style={{ fontSize: 13, color: '#9ca3af' }}>PDF fayllarni tanlang (bir nechta marta qo‘shishingiz mumkin)</div>
                   </label>
 
                   {stepFiles[2].length > 0 && stepFiles[2].map((f, i) => (
@@ -870,8 +959,13 @@ const ObektPage = () => {
                   ))}
 
                   {msg && <div style={{ fontSize: 12, color: '#f87171', marginBottom: 14, marginTop: 10 }}>{msg}</div>}
-                  <button type="button" onClick={() => handleUpload(2)} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', marginTop: 8 }}>
-                    Yuklash va davom etish →
+                  <button
+                    type="button"
+                    disabled={uploadingStep}
+                    onClick={() => handleUpload(2)}
+                    style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: uploadingStep ? 'rgba(37,99,235,0.5)' : '#2563eb', color: '#fff', fontWeight: 800, fontSize: 14, cursor: uploadingStep ? 'wait' : 'pointer', marginTop: 8 }}
+                  >
+                    {uploadingStep ? 'Yuklanmoqda…' : 'Yuklash va davom etish →'}
                   </button>
                 </div>
               )}
@@ -916,11 +1010,15 @@ const ObektPage = () => {
                       type="file"
                       multiple
                       accept=".xlsx,.xls"
-                      onChange={(e) => setStepFiles((s) => ({ ...s, 3: Array.from(e.target.files || []) }))}
+                      onChange={(e) => {
+                        const add = Array.from(e.target.files || []);
+                        e.target.value = '';
+                        setStepFiles((s) => ({ ...s, 3: mergeUploadedFiles(s[3], add) }));
+                      }}
                       style={{ display: 'none' }}
                     />
                     <div style={{ fontSize: 24, marginBottom: 6 }}>📂</div>
-                    <div style={{ fontSize: 13, color: '#9ca3af' }}>Excel fayllarni yuklang</div>
+                    <div style={{ fontSize: 13, color: '#9ca3af' }}>Excel fayllarni yuklang (bir nechta bosqichda qo‘shing)</div>
                   </label>
 
                   {stepFiles[3].length > 0 && stepFiles[3].map((f, i) => (
@@ -933,8 +1031,13 @@ const ObektPage = () => {
                   <div style={{ background: 'rgba(217,119,6,0.06)', border: '1px solid rgba(217,119,6,0.15)', borderRadius: 8, padding: 10, marginBottom: 14, fontSize: 11, color: '#fbbf24' }}>
                     ⚠ Kamida 1 ta Excel fayl yuklang (3 ta talab qilinadi)
                   </div>
-                  <button type="button" onClick={() => handleUpload(3)} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>
-                    Yuklash va davom etish →
+                  <button
+                    type="button"
+                    disabled={uploadingStep}
+                    onClick={() => handleUpload(3)}
+                    style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: uploadingStep ? 'rgba(37,99,235,0.5)' : '#2563eb', color: '#fff', fontWeight: 800, fontSize: 14, cursor: uploadingStep ? 'wait' : 'pointer' }}
+                  >
+                    {uploadingStep ? 'Yuklanmoqda…' : 'Yuklash va davom etish →'}
                   </button>
                 </div>
               )}
@@ -982,7 +1085,11 @@ const ObektPage = () => {
                       type="file"
                       multiple
                       accept=".pdf,.xlsx,.xls,.jpg,.jpeg,.png"
-                      onChange={(e) => setStepFiles((s) => ({ ...s, 4: Array.from(e.target.files || []) }))}
+                      onChange={(e) => {
+                        const add = Array.from(e.target.files || []);
+                        e.target.value = '';
+                        setStepFiles((s) => ({ ...s, 4: mergeUploadedFiles(s[4], add) }));
+                      }}
                       style={{ display: 'none' }}
                     />
                     <div style={{ fontSize: 28, marginBottom: 8 }}>📂</div>
@@ -1006,8 +1113,13 @@ const ObektPage = () => {
                     >
                       O'tkazib yuborish →
                     </button>
-                    <button type="button" onClick={() => handleUpload(4)} style={{ flex: 2, padding: '11px', borderRadius: 8, border: 'none', background: '#d97706', color: '#fff', fontWeight: 900, fontSize: 13, cursor: 'pointer' }}>
-                      Yuklash →
+                    <button
+                      type="button"
+                      disabled={uploadingStep}
+                      onClick={() => handleUpload(4)}
+                      style={{ flex: 2, padding: '11px', borderRadius: 8, border: 'none', background: uploadingStep ? 'rgba(217,119,6,0.5)' : '#d97706', color: '#fff', fontWeight: 900, fontSize: 13, cursor: uploadingStep ? 'wait' : 'pointer' }}
+                    >
+                      {uploadingStep ? 'Yuklanmoqda…' : 'Yuklash →'}
                     </button>
                   </div>
                 </div>
@@ -1032,7 +1144,7 @@ const ObektPage = () => {
                   <div style={{ fontSize: 54, marginBottom: 10 }}>🎉</div>
                   <div style={{ fontSize: 18, fontWeight: 900, color: '#10b981', marginBottom: 8 }}>Jarayon yakunlandi</div>
                   <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 18 }}>
-                    GASN arizani ko'rib chiqadi. Tasdiqlangan obyektlar pastdagi ro‘yxatda paydo bo'ladi.
+                    DAQNI arizani ko'rib chiqadi. Tasdiqlangan obyektlar pastdagi ro‘yxatda paydo bo'ladi.
                   </div>
                   <button
                     type="button"
@@ -1042,6 +1154,7 @@ const ObektPage = () => {
                       setStepStatus({ 1: 'idle', 2: 'idle', 3: 'idle', 4: 'idle', 5: 'idle' });
                       setStepFiles({ 2: [], 3: [], 4: [], 5: [] });
                       setSubmittedObjectName('');
+                      setCurrentApplicationId(null);
                       setMsg('');
                     }}
                     style={{ padding: '9px 24px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}
@@ -1069,7 +1182,11 @@ const ObektPage = () => {
                       type="file"
                       multiple
                       accept=".pdf"
-                      onChange={(e) => setStepFiles((s) => ({ ...s, 5: Array.from(e.target.files || []) }))}
+                      onChange={(e) => {
+                        const add = Array.from(e.target.files || []);
+                        e.target.value = '';
+                        setStepFiles((s) => ({ ...s, 5: mergeUploadedFiles(s[5], add) }));
+                      }}
                       style={{ display: 'none' }}
                     />
                     <div style={{ fontSize: 28, marginBottom: 8 }}>📂</div>
@@ -1083,8 +1200,13 @@ const ObektPage = () => {
                   ))}
 
                   {msg && <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 14, fontSize: 12, background: 'rgba(239,68,68,0.1)', color: '#ef4444' }}>{msg}</div>}
-                  <button type="button" onClick={() => handleUpload(5)} style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: '#059669', color: '#fff', fontWeight: 900, fontSize: 14, cursor: 'pointer', marginTop: 8 }}>
-                    Yuklash va yakunlash 🏁
+                  <button
+                    type="button"
+                    disabled={uploadingStep}
+                    onClick={() => handleUpload(5)}
+                    style={{ width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: uploadingStep ? 'rgba(5,150,105,0.5)' : '#059669', color: '#fff', fontWeight: 900, fontSize: 14, cursor: uploadingStep ? 'wait' : 'pointer', marginTop: 8 }}
+                  >
+                    {uploadingStep ? 'Yuklanmoqda…' : 'Yuklash va yakunlash 🏁'}
                   </button>
                 </div>
               )}

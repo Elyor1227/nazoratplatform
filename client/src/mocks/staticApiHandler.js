@@ -1,5 +1,6 @@
 import {
   findUserByEmail,
+  gasnInspectors,
   getAlerts,
   getApplications,
   getProjects,
@@ -37,9 +38,16 @@ function randomId() {
   return `64${Math.random().toString(16).slice(2, 26)}`;
 }
 
+function queryParamsFromUrl(urlStr) {
+  const s = String(urlStr);
+  const q = s.includes('?') ? s.slice(s.indexOf('?') + 1) : '';
+  return new URLSearchParams(q);
+}
+
 /** Axios-compatible success: { data, status, headers } */
 export async function handleStaticRequest(method, url, data, config) {
-  const path = String(url).replace(/\?.*$/, '');
+  const rawUrl = String(url);
+  const path = rawUrl.replace(/\?.*$/, '');
   const blob = config?.responseType === 'blob';
 
   if (blob && method === 'get') {
@@ -53,6 +61,15 @@ export async function handleStaticRequest(method, url, data, config) {
       const name = decodeURIComponent(fileMatch[2]);
       return {
         data: new Blob([`Statik demo fayl: ${name}`], { type: 'application/octet-stream' }),
+        status: 200,
+        headers: {},
+      };
+    }
+    const appFileMatch = path.match(/^\/applications\/([^/]+)\/files\/(.+)$/);
+    if (appFileMatch) {
+      const name = decodeURIComponent(appFileMatch[2]);
+      return {
+        data: new Blob([`Statik demo ariza fayli: ${name}`], { type: 'application/octet-stream' }),
         status: 200,
         headers: {},
       };
@@ -143,6 +160,16 @@ export async function handleStaticRequest(method, url, data, config) {
     return { data: { role, stats: {} }, status: 200, headers: {} };
   }
 
+  if (method === 'get' && path === '/gasn/inspectors') {
+    const u = currentUser();
+    if (u?.role !== 'gasn') {
+      const err = new Error('Ruxsat yo\'q');
+      err.response = { status: 403, data: { error: err.message } };
+      throw err;
+    }
+    return { data: { inspectors: gasnInspectors }, status: 200, headers: {} };
+  }
+
   if (method === 'get' && path === '/dashboard/companies') {
     const companies = staticUsers
       .filter((x) => x.role === 'construction_company')
@@ -184,15 +211,6 @@ export async function handleStaticRequest(method, url, data, config) {
 
     const periodYear = Number(body.periodYear);
     const periodMonth = Number(body.periodMonth);
-    const dup = getReports().some(
-      (r) =>
-        r.companyUserId === u.id && r.periodYear === periodYear && r.periodMonth === periodMonth
-    );
-    if (dup) {
-      const err = new Error('Bu davr uchun hisobot allaqachon yuborilgan');
-      err.response = { status: 409, data: { error: err.message } };
-      throw err;
-    }
 
     const id = randomId();
     const invoices = files.map((file, i) => {
@@ -356,6 +374,7 @@ export async function handleStaticRequest(method, url, data, config) {
       notes: notes != null ? String(notes).trim() : '',
       status: 'pending',
       gasnInspectorFio: '',
+      attachments: [],
       createdAt: new Date().toISOString(),
     };
     pushApplication(application);
@@ -378,7 +397,7 @@ export async function handleStaticRequest(method, url, data, config) {
     }
     const fio = String(data?.gasnInspectorFio ?? app.gasnInspectorFio ?? '').trim();
     if (!fio) {
-      const err = new Error('Avval DAQNI xodimi F.I.Sh. kiritilishi kerak');
+      const err = new Error('Avval ro\'yxatdan DAQNI xodimini tanlang');
       err.response = { status: 400, data: { error: err.message } };
       throw err;
     }
@@ -404,6 +423,54 @@ export async function handleStaticRequest(method, url, data, config) {
     const extra = {};
     if (data?.gasnInspectorFio != null) extra.gasnInspectorFio = String(data.gasnInspectorFio).trim();
     patchApplication(id, { ...extra, status: 'rejected', reviewedByUserId: u.id });
+    const application = getApplications().find((a) => a._id === id);
+    return { data: { application }, status: 200, headers: {} };
+  }
+
+  if (method === 'post' && /^\/applications\/[^/]+\/attachments$/.test(path)) {
+    const u = currentUser();
+    if (u?.role !== 'construction_company') {
+      const err = new Error('Ruxsat yo\'q');
+      err.response = { status: 403, data: { error: err.message } };
+      throw err;
+    }
+    const id = path.match(/^\/applications\/([^/]+)\/attachments$/)[1];
+    const app = getApplications().find((a) => String(a._id) === String(id));
+    if (!app || String(app.companyUserId) !== String(u.id)) {
+      const err = new Error('Ariza topilmadi');
+      err.response = { status: 404, data: { error: err.message } };
+      throw err;
+    }
+    let body = {};
+    const files = [];
+    if (data instanceof FormData) {
+      for (const [k, v] of data.entries()) {
+        const isBlob = typeof Blob !== 'undefined' && v instanceof Blob;
+        if (k === 'files' && isBlob) {
+          files.push(v);
+        } else if (!(k === 'files' && isBlob)) {
+          if (typeof v === 'string') body[k] = v;
+        }
+      }
+    }
+    const stepQ = Number(queryParamsFromUrl(rawUrl).get('step'));
+    const step = Number.isFinite(stepQ) && stepQ > 0 ? stepQ : Number(body.step);
+    if (![2, 3, 4, 5].includes(step)) {
+      const err = new Error('step 2–5 bo\'lishi kerak');
+      err.response = { status: 400, data: { error: err.message } };
+      throw err;
+    }
+    if (!files.length) {
+      const err = new Error('Kamida bitta fayl yuklang');
+      err.response = { status: 400, data: { error: err.message } };
+      throw err;
+    }
+    const newAtt = files.map((file, i) => {
+      const safeName = typeof file.name === 'string' && file.name ? file.name : `fayl-${i + 1}`;
+      const storedName = `st-${Date.now()}-${i}-${safeName.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+      return { _id: randomId(), fileName: safeName, storedName, step };
+    });
+    patchApplication(id, { attachments: [...(app.attachments || []), ...newAtt] });
     const application = getApplications().find((a) => a._id === id);
     return { data: { application }, status: 200, headers: {} };
   }

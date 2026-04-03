@@ -156,9 +156,9 @@ const StatCard = ({ icon, label, value, sub, color = 'cyan', onClick }) => {
 const Sidebar = ({ activePage, setActivePage, projectsCount }) => {
   const { logout, user } = useAuth();
   const navItems = [
-    { id: 'dashboard', icon: '📊', label: 'Bosh panel', badge: null },
+    { id: 'dashboard', icon: '📊', label: 'Bosh sahifa', badge: null },
     { id: 'obyektlar', icon: '🏗️', label: 'Obyektlar', badge: { type: 'warn', text: String(projectsCount) } },
-    { id: 'taqqoslash', icon: '⚖️', label: 'Smeta taqqoslash', badge: null },
+    // { id: 'taqqoslash', icon: '⚖️', label: 'Smeta taqqoslash', badge: null },
     { id: 'hisobotlar', icon: '📋', label: 'Korxonalar', badge: null },
     { id: 'arizalar', icon: '📝', label: 'Arizalar', badge: null },
   ];
@@ -925,6 +925,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
   const { user } = useAuth();
   const isGasn = user?.role === 'gasn';
   const [apps, setApps] = useState([]);
+  const [inspectors, setInspectors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [fioInputs, setFioInputs] = useState({});
   const [busyId, setBusyId] = useState(null);
@@ -932,7 +933,15 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
   const load = async () => {
     try {
       const { data } = await api.get('/applications');
-      setApps(data.applications || []);
+      const list = data.applications || [];
+      setApps(list);
+      setFioInputs((prev) => {
+        const next = { ...prev };
+        for (const a of list) {
+          if (a.gasnInspectorFio && next[a._id] === undefined) next[a._id] = a.gasnInspectorFio;
+        }
+        return next;
+      });
     } catch {
       onError?.("Arizalar ro'yxati yuklanmadi");
     } finally {
@@ -943,6 +952,18 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
   useEffect(() => {
     load();
   }, []);
+
+  useEffect(() => {
+    if (!isGasn) return;
+    (async () => {
+      try {
+        const { data } = await api.get('/gasn/inspectors');
+        setInspectors(data.inspectors || []);
+      } catch {
+        setInspectors([]);
+      }
+    })();
+  }, [isGasn]);
 
   const visibleApps = statusFilter ? apps.filter((a) => a.status === statusFilter) : apps;
 
@@ -1000,7 +1021,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
     <div className="space-y-4">
       <div className="rounded-xl border border-cyan-500/20 bg-cyan-950/20 p-3 text-[11px] text-cyan-100/90">
         Kelib tushgan ariza bo‘yicha faqat <strong>{ORG_SHORT}</strong> tasdiqlashi mumkin. Obyektga biriktirilgan{' '}
-        <strong>{ORG_SHORT}</strong> xodimining F.I.Sh. quyida ko‘rsatiladi; xodimni {ORG_SHORT} o‘zi biriktiradi.
+        <strong>{ORG_SHORT}</strong> xodimi quyidagi ro‘yxatdan tanlanadi; qo‘lda yozilmaydi.
       </div>
       <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#111827]">
         <table className="w-full min-w-[900px] text-sm">
@@ -1008,10 +1029,11 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
             <tr className="border-b border-white/10 bg-[#1a2438] text-left text-[10px] uppercase tracking-wider text-[#3d4f6a]">
               <th className="px-3 py-2">Obyekt</th>
               {isGasn && <th className="px-3 py-2">Korxona</th>}
+              {isGasn && <th className="px-3 py-2">Biriktirilgan fayllar</th>}
               <th className="px-3 py-2">Sana</th>
               <th className="px-3 py-2">Holat</th>
-              <th className="px-3 py-2">Biriktirilgan {ORG_SHORT} xodimi (F.I.Sh.)</th>
-              <th className="px-3 py-2">F.I.Sh. biriktirish</th>
+              <th className="px-3 py-2">Biriktirilgan {ORG_SHORT} xodimi</th>
+              <th className="px-3 py-2">Xodimni tanlash</th>
               {isGasn && <th className="px-3 py-2">Tasdiqlash</th>}
               {isGasn && <th className="px-3 py-2">Rad etish</th>}
             </tr>
@@ -1019,7 +1041,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
           <tbody>
             {visibleApps.length === 0 ? (
               <tr>
-                <td colSpan={isGasn ? 8 : 4} className="px-4 py-8 text-center text-[#7a8eaa]">
+                <td colSpan={isGasn ? 9 : 5} className="px-4 py-8 text-center text-[#7a8eaa]">
                   Hozircha ariza yo‘q.
                 </td>
               </tr>
@@ -1029,11 +1051,42 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                 const dateStr = app.createdAt
                   ? new Date(app.createdAt).toLocaleDateString('uz-UZ')
                   : '—';
+                const att = app.attachments || [];
                 return (
                   <tr key={app._id} className="border-b border-white/10">
                     <td className="px-3 py-2 text-white">{app.objectName}</td>
                     {isGasn && (
                       <td className="px-3 py-2 text-[#7a8eaa]">{app.organizationName || app.companyEmail || '—'}</td>
+                    )}
+                    {isGasn && (
+                      <td className="max-w-[200px] px-3 py-2 align-top text-[11px] text-[#a1a1aa]">
+                        {att.length === 0 ? (
+                          <span className="text-[#3d4f6a]">—</span>
+                        ) : (
+                          <ul className="list-none space-y-1 p-0">
+                            {att.map((a, idx) => (
+                              <li key={idx}>
+                                <button
+                                  type="button"
+                                  className="text-left text-cyan-400 underline decoration-cyan-500/40 hover:text-cyan-300"
+                                  onClick={() =>
+                                    downloadBlob(
+                                      api,
+                                      `/applications/${app._id}/files/${encodeURIComponent(a.storedName)}`,
+                                      a.fileName || 'fayl'
+                                    )
+                                  }
+                                >
+                                  {a.fileName}
+                                </button>
+                                {a.step ? (
+                                  <span className="text-[#3d4f6a]"> · {a.step}-bosqich</span>
+                                ) : null}
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </td>
                     )}
                     <td className="px-3 py-2 text-[#7a8eaa]">{dateStr}</td>
                     <td className="px-3 py-2">
@@ -1042,14 +1095,21 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                     <td className="px-3 py-2 text-cyan-300">{app.gasnInspectorFio || '—'}</td>
                     <td className="px-3 py-2">
                       {isGasn ? (
-                        <div className="flex flex-wrap gap-1">
-                          <input
-                            className="w-40 max-w-full rounded border border-white/10 bg-[#0f172a] px-2 py-1 text-xs text-white"
-                            placeholder="Masalan: Karimov A.A."
-                            value={fioInputs[app._id] ?? ''}
+                        <div className="flex flex-wrap items-center gap-1">
+                          <select
+                            className="max-w-[200px] rounded border border-white/10 bg-[#0f172a] px-2 py-1 text-xs text-white"
+                            value={fioInputs[app._id] ?? app.gasnInspectorFio ?? ''}
                             onChange={(e) => setFio(app._id, e.target.value)}
                             disabled={app.status !== 'pending'}
-                          />
+                          >
+                            <option value="">— Xodimni tanlang —</option>
+                            {inspectors.map((x) => (
+                              <option key={x.id} value={x.fio}>
+                                {x.fio}
+                                {x.position ? ` (${x.position})` : ''}
+                              </option>
+                            ))}
+                          </select>
                           <button
                             type="button"
                             onClick={() => assignFio(app._id)}
@@ -1237,7 +1297,7 @@ export default function GasnDashboard() {
   };
 
   const pageTitles = {
-    dashboard: `${ORG_SHORT} — bosh panel`,
+    dashboard: `${ORG_SHORT} — bosh sahifa`,
     obyektlar: "Obyektlar ro'yxati",
     taqqoslash: 'Smeta va haqiqiy ko‘rsatkichlar',
     hisobotlar: 'Korxonalar hisobotlari',
