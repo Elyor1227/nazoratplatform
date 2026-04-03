@@ -26,6 +26,13 @@ const applicationSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    attachments: [
+      {
+        fileName: { type: String, required: true },
+        storedName: { type: String, required: true },
+        step: { type: Number, min: 2, max: 5 },
+      },
+    ],
   },
   { timestamps: true }
 );

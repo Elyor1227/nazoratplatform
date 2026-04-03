@@ -40,7 +40,7 @@ const users = [
   {
     email: 'gasn@demo.uz',
     role: ROLES.GASN,
-    fullName: 'GASN inspektor',
+    fullName: 'DAQNI inspektor',
   },
   {
     email: 'soliq@demo.uz',
@@ -84,6 +84,7 @@ if (company?._id) {
       notes: '',
       status: APPLICATION_STATUS.PENDING,
       gasnInspectorFio: '',
+      attachments: [],
     },
     {
       companyUserId: company._id,
@@ -91,6 +92,7 @@ if (company?._id) {
       notes: '',
       status: APPLICATION_STATUS.PENDING,
       gasnInspectorFio: 'Karimov A.A.',
+      attachments: [],
     },
     {
       companyUserId: company._id,
@@ -99,6 +101,7 @@ if (company?._id) {
       status: APPLICATION_STATUS.APPROVED,
       gasnInspectorFio: 'Tursunov B.B.',
       reviewedByUserId: gasn?._id || null,
+      attachments: [],
     },
   ]);
   console.log('OK: demo arizalar (3)');

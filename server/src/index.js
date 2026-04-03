@@ -10,6 +10,7 @@ import cors from 'cors';
 import { Server } from 'socket.io';
 import jwt from 'jsonwebtoken';
 import { connectDb } from './config/db.js';
+import { Report } from './models/Report.js';
 import { getJwtSecret } from './config/jwtSecret.js';
 
 import authRoutes from './routes/auth.js';
@@ -19,6 +20,7 @@ import compareRoutes from './routes/compare.js';
 import alertsRoutes from './routes/alerts.js';
 import dashboardRoutes from './routes/dashboard.js';
 import applicationsRoutes from './routes/applications.js';
+import gasnRoutes from './routes/gasn.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -68,6 +70,7 @@ app.use('/api/compare', compareRoutes);
 app.use('/api/alerts', alertsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/applications', applicationsRoutes);
+app.use('/api/gasn', gasnRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);
@@ -80,6 +83,7 @@ const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/soliqnazo
 
 try {
   await connectDb(mongoUri);
+  await Report.syncIndexes().catch(() => {});
 } catch (err) {
   console.error('\n[!] MongoDB ga ulanib bo\'lmadi:', err.message);
   console.error('\nYechimlar:');

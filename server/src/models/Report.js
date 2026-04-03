@@ -29,6 +29,6 @@ const reportSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-reportSchema.index({ companyUserId: 1, periodYear: 1, periodMonth: 1 }, { unique: true });
+reportSchema.index({ companyUserId: 1, periodYear: -1, periodMonth: -1 });
 
 export const Report = mongoose.model('Report', reportSchema);
