@@ -1168,7 +1168,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                             disabled={
                               busyId === app._id || !(fioInputs[app._id] ?? app.gasnInspectorFio ?? '').trim()
                             }
-                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-slate-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white shadow-sm hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40 dark:hover:bg-emerald-500"
                             title={
                               !(fioInputs[app._id] ?? app.gasnInspectorFio ?? '').trim()
                                 ? 'Avval F.I.Sh. kiriting yoki saqlang'
@@ -1189,7 +1189,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                             type="button"
                             onClick={() => reject(app._id)}
                             disabled={busyId === app._id}
-                            className="rounded-lg border border-red-500/40 bg-red-950/30 px-3 py-1 text-xs text-red-300 hover:bg-red-950/50 disabled:opacity-40"
+                            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1 text-xs font-medium text-red-700 shadow-sm hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-red-500/40 dark:bg-red-950/30 dark:text-red-300 dark:shadow-none dark:hover:bg-red-950/50"
                           >
                             Rad etish
                           </button>
