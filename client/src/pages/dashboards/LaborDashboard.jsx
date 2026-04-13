@@ -43,13 +43,13 @@ export default function LaborDashboard() {
       )}
       {summary?.stats && (
         <div className="mb-10 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-slate-400">“Nol” xodim signallari</p>
-            <p className="mt-1 font-display text-3xl font-bold text-red-400">{summary.stats.zeroAlerts}</p>
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-sm text-slate-600 dark:text-slate-400">“Nol” xodim signallari</p>
+            <p className="mt-1 font-display text-3xl font-bold text-red-500 dark:text-red-400">{summary.stats.zeroAlerts}</p>
           </div>
-          <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-            <p className="text-sm text-slate-400">Shartnomasi bor, xodim 0 (hisobotlar)</p>
-            <p className="mt-1 font-display text-3xl font-bold text-white">
+          <div className="rounded-xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-white/5">
+            <p className="text-sm text-slate-600 dark:text-slate-400">Shartnomasi bor, xodim 0 (hisobotlar)</p>
+            <p className="mt-1 font-display text-3xl font-bold text-slate-900 dark:text-white">
               {summary.stats.zeroEmployeeReports}
             </p>
           </div>
@@ -57,22 +57,22 @@ export default function LaborDashboard() {
       )}
 
       <section>
-        <h2 className="font-display text-lg font-semibold text-white">Bandlik monitoringi</h2>
+        <h2 className="font-display text-lg font-semibold text-slate-900 dark:text-white">Bandlik monitoringi</h2>
         <ul className="mt-4 space-y-3">
           {alerts.map((a) => (
             <li
               key={a._id}
-              className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-white/10 bg-slate-900/50 p-4"
+              className="flex flex-wrap items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-white/10 dark:bg-slate-900/50"
             >
               <div>
-                <p className="text-white">{a.message}</p>
+                <p className="text-slate-900 dark:text-white">{a.message}</p>
                 <p className="mt-1 text-xs text-slate-500">{a.type}</p>
               </div>
               {!a.acknowledged && (
                 <button
                   type="button"
                   onClick={() => ack(a._id)}
-                  className="rounded-lg bg-white/10 px-3 py-1 text-sm text-white hover:bg-white/15"
+                  className="rounded-lg bg-slate-200 px-3 py-1 text-sm text-slate-800 hover:bg-slate-300 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                 >
                   Qabul qilindi
                 </button>

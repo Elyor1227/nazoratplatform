@@ -13,6 +13,31 @@ dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '..', '.env'
 import mongoose from 'mongoose';
 import { User, ROLES } from '../src/models/User.js';
 import { Application, APPLICATION_STATUS } from '../src/models/Application.js';
+import { WORK_VOLUME_KEYS, LABEL_BY_KEY } from '../src/utils/objectRegistration.js';
+
+function demoWorkVolumes() {
+  const units = ['soat', 'kVt·soat', 'litr', 't', 't', 'm3', 'm3', 'm3', 'ming.dona', 'so‘m', 'koef.'];
+  return WORK_VOLUME_KEYS.map((key, i) => ({
+    key,
+    labelUz: LABEL_BY_KEY[key],
+    unit: units[i] || '—',
+    volume: 10 + i * 3,
+    pricePerUnit: 100000 + i * 5000,
+  }));
+}
+
+const demoReg = {
+  registrationSummary: {
+    materials: 100000000,
+    equipment: 20000000,
+    machinery: 15000000,
+    wages: 80000000,
+    otherExpenses: 5000000,
+    vat: 12000000,
+  },
+  registrationEmployeeCount: 12,
+  workVolumes: demoWorkVolumes(),
+};
 
 const mongoUri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/soliqnazorat';
 
@@ -85,6 +110,7 @@ if (company?._id) {
       status: APPLICATION_STATUS.PENDING,
       gasnInspectorFio: '',
       attachments: [],
+      ...demoReg,
     },
     {
       companyUserId: company._id,
@@ -93,6 +119,7 @@ if (company?._id) {
       status: APPLICATION_STATUS.PENDING,
       gasnInspectorFio: 'Karimov A.A.',
       attachments: [],
+      ...demoReg,
     },
     {
       companyUserId: company._id,
@@ -102,6 +129,7 @@ if (company?._id) {
       gasnInspectorFio: 'Tursunov B.B.',
       reviewedByUserId: gasn?._id || null,
       attachments: [],
+      ...demoReg,
     },
   ]);
   console.log('OK: demo arizalar (3)');

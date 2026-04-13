@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Chart from 'chart.js/auto';
 import { useAuth } from '../../context/AuthContext.jsx';
+import { useTheme } from '../../context/ThemeContext.jsx';
+import ThemeToggle from '../../components/ThemeToggle.jsx';
 import api from '../../api.js';
 import { downloadBlob } from '../../utils/downloadBlob.js';
 import {
@@ -11,6 +13,7 @@ import {
   getBadgeClass,
   diffVal,
 } from '../../data/gasnDashboardMock.js';
+import { SUMMARY_FIELD_META, WORK_VOLUME_ROWS } from '../../data/objectRegistrationSchema.js';
 
 function sortReportsLatest(reports) {
   return [...reports].sort((a, b) => {
@@ -51,20 +54,20 @@ function ToifaInfografika() {
   return (
     <div className="space-y-4">
       <div>
-        <div className="text-xs font-semibold text-white">Obyektlar toifasi bo‘yicha</div>
-        <p className="text-[11px] text-[#7a8eaa] mt-0.5">
+        <div className="text-xs font-semibold text-slate-900 dark:text-white">Obyektlar toifasi bo‘yicha</div>
+        <p className="mt-0.5 text-[11px] text-slate-600 dark:text-[#7a8eaa]">
           Har bir qatorda toifa va unga tegishli obyekt nomlari ko‘rsatiladi (namuna statistikasi).
         </p>
       </div>
       {obyektlarToifaBoYicha.map((g) => {
         const ulush = Math.round((g.obyektlar.length / maxLen) * 100);
         return (
-          <div key={g.toifa} className="rounded-xl border border-white/10 bg-[#0f172a] p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-              <span className="text-xs font-medium text-white">{g.toifa}</span>
-              <span className="text-[10px] text-[#7a8eaa]">{g.obyektlar.length} ta obyekt</span>
+          <div key={g.toifa} className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-white/10 dark:bg-[#0f172a]">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-medium text-slate-900 dark:text-white">{g.toifa}</span>
+              <span className="text-[10px] text-slate-600 dark:text-[#7a8eaa]">{g.obyektlar.length} ta obyekt</span>
             </div>
-            <div className="h-2.5 rounded-full bg-[#1e293b] overflow-hidden mb-2">
+            <div className="mb-2 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-[#1e293b]">
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${ulush}%`, background: g.rang }}
@@ -92,9 +95,15 @@ function ToifaInfografika() {
 const BarChart = () => {
   const chartRef = useRef(null);
   const chartInstance = useRef(null);
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+
   useEffect(() => {
     if (!chartRef.current) return;
     if (chartInstance.current) chartInstance.current.destroy();
+    const tick = isDark ? '#94a3b8' : '#64748b';
+    const grid = isDark ? 'rgba(255,255,255,.06)' : 'rgba(15,23,42,.08)';
+    const legend = isDark ? '#94a3b8' : '#475569';
     chartInstance.current = new Chart(chartRef.current, {
       type: 'bar',
       data: {
@@ -119,16 +128,16 @@ const BarChart = () => {
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        plugins: { legend: { labels: { color: '#94a3b8', font: { size: 10 } } } },
+        plugins: { legend: { labels: { color: legend, font: { size: 10 } } } },
         scales: {
-          x: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#7a8eaa' } },
-          y: { grid: { color: 'rgba(255,255,255,.04)' }, ticks: { color: '#7a8eaa' }, position: 'left' },
-          y1: { grid: { display: false }, ticks: { color: '#fbbf24' }, position: 'right' },
+          x: { grid: { color: grid }, ticks: { color: tick } },
+          y: { grid: { color: grid }, ticks: { color: tick }, position: 'left' },
+          y1: { grid: { display: false }, ticks: { color: isDark ? '#fbbf24' : '#b45309' }, position: 'right' },
         },
       },
     });
     return () => chartInstance.current?.destroy();
-  }, []);
+  }, [isDark]);
   return <canvas ref={chartRef} className="h-full w-full" />;
 };
 
@@ -136,7 +145,7 @@ const StatCard = ({ icon, label, value, sub, color = 'cyan', onClick }) => {
   const colorMap = { cyan: 'text-cyan-400', yellow: 'text-yellow-400', red: 'text-red-400', green: 'text-green-400' };
   return (
     <div
-      className={`relative overflow-hidden rounded-2xl border border-white/10 bg-[#111827] p-3 sm:p-4 ${onClick ? 'cursor-pointer' : ''}`}
+      className={`relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-3 sm:p-4 dark:border-white/10 dark:bg-[#111827] ${onClick ? 'cursor-pointer' : ''}`}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : undefined}
@@ -146,9 +155,9 @@ const StatCard = ({ icon, label, value, sub, color = 'cyan', onClick }) => {
       }}
     >
       <span className="absolute right-2 top-2 text-lg opacity-10 sm:text-xl">{icon}</span>
-      <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-[#7a8eaa] sm:text-[11px]">{label}</div>
+      <div className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-600 sm:text-[11px] dark:text-[#7a8eaa]">{label}</div>
       <div className={`text-lg font-bold sm:text-2xl ${colorMap[color]}`}>{value}</div>
-      {sub && <div className="mt-1 text-[10px] text-[#7a8eaa]">{sub}</div>}
+      {sub && <div className="mt-1 text-[10px] text-slate-600 dark:text-[#7a8eaa]">{sub}</div>}
     </div>
   );
 };
@@ -163,28 +172,30 @@ const Sidebar = ({ activePage, setActivePage, projectsCount }) => {
     { id: 'arizalar', icon: '📝', label: 'Arizalar', badge: null },
   ];
   return (
-    <aside className="fixed bottom-0 left-0 top-0 z-50 flex w-56 flex-col border-r border-white/10 bg-[#111827] sm:w-60">
-      <div className="border-b border-white/10 p-4 sm:p-5">
+    <aside className="fixed bottom-0 left-0 top-0 z-50 flex w-56 flex-col border-r border-slate-200 bg-white sm:w-60 dark:border-white/10 dark:bg-[#111827]">
+      <div className="border-b border-slate-200 p-4 dark:border-white/10 sm:p-5">
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-600 to-cyan-400 text-lg">🏛️</div>
           <div>
-            <div className="text-sm font-bold leading-tight">{ORG_SHORT}</div>
-            <div className="text-[9px] leading-snug text-[#7a8eaa]">{ORG_FULL_NAME}</div>
+            <div className="text-sm font-bold leading-tight text-slate-900 dark:text-white">{ORG_SHORT}</div>
+            <div className="text-[9px] leading-snug text-slate-600 dark:text-[#7a8eaa]">{ORG_FULL_NAME}</div>
           </div>
         </div>
-        <div className="mt-3 rounded-lg border border-white/10 bg-[#1a2438] p-2.5 text-[10px] text-[#7a8eaa]">
+        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[10px] text-slate-600 dark:border-white/10 dark:bg-[#1a2438] dark:text-[#7a8eaa]">
           Korxonalar ma’lumotni faqat ko‘rishi mumkin; kiritish huquqi yo‘q.
         </div>
       </div>
       <div className="flex-1 overflow-y-auto px-2 pb-2 pt-3">
-        <div className="mb-1.5 px-2 text-[10px] uppercase tracking-wider text-[#3d4f6a]">Menyu</div>
+        <div className="mb-1.5 px-2 text-[10px] uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Menyu</div>
         {navItems.map((item) => (
           <button
             key={item.id}
             type="button"
             onClick={() => setActivePage(item.id)}
             className={`mb-0.5 flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-all ${
-              activePage === item.id ? 'bg-cyan-500/10 text-cyan-400' : 'text-[#7a8eaa] hover:bg-[#1a2438] hover:text-[#e6edf8]'
+              activePage === item.id
+                ? 'bg-cyan-500/15 text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400'
+                : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-[#7a8eaa] dark:hover:bg-[#1a2438] dark:hover:text-[#e6edf8]'
             }`}
           >
             <span className="w-4 text-[15px]">{item.icon}</span>
@@ -201,21 +212,21 @@ const Sidebar = ({ activePage, setActivePage, projectsCount }) => {
           </button>
         ))}
       </div>
-      <div className="border-t border-white/10 p-3">
+      <div className="border-t border-slate-200 p-3 dark:border-white/10">
         <button
           type="button"
           onClick={logout}
-          className="mb-3 w-full rounded-lg border border-white/15 py-2 text-sm text-white hover:bg-white/5"
+          className="mb-3 w-full rounded-lg border border-slate-300 py-2 text-sm text-slate-800 hover:bg-slate-100 dark:border-white/15 dark:text-white dark:hover:bg-white/5"
         >
           Chiqish
         </button>
-        <div className="flex items-center gap-2 rounded-lg bg-[#1a2438] p-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/10 text-xs font-semibold text-cyan-400">
+        <div className="flex items-center gap-2 rounded-lg bg-slate-100 p-2 dark:bg-[#1a2438]">
+          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-cyan-500/20 text-xs font-semibold text-cyan-700 dark:bg-cyan-500/10 dark:text-cyan-400">
             {(user?.fullName || user?.email || '?').slice(0, 2).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <div className="truncate text-xs font-medium">{user?.fullName || user?.email}</div>
-            <div className="text-[10px] text-[#7a8eaa]">Inspektor · {ORG_SHORT}</div>
+            <div className="truncate text-xs font-medium text-slate-900 dark:text-white">{user?.fullName || user?.email}</div>
+            <div className="text-[10px] text-slate-600 dark:text-[#7a8eaa]">Inspektor · {ORG_SHORT}</div>
           </div>
         </div>
       </div>
@@ -249,35 +260,39 @@ function KorxonaModal({ open, onClose, modal, reports }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4" role="dialog">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-white/10 bg-[#111827] p-5 shadow-2xl">
+      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827] p-5 shadow-2xl">
         <div className="mb-4 flex items-start justify-between gap-2">
           <div>
-            <h3 className="text-lg font-semibold text-white">{organizationName}</h3>
-            <p className="mt-1 text-[11px] text-slate-400">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{organizationName}</h3>
+            <p className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">
               Hisobotga biriktirilgan hisob-faktura va boshqa fayllar. Yuklab olish uchun tugmani bosing.
             </p>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg px-2 py-1 text-slate-400 hover:bg-white/10 hover:text-white">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-lg px-2 py-1 text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/10 dark:hover:text-white"
+          >
             ✕
           </button>
         </div>
         {rows.length === 0 ? (
-          <p className="text-sm text-slate-500">Bu korxona uchun yuklangan fayllar hali mavjud emas.</p>
+          <p className="text-sm text-slate-600 dark:text-slate-500">Bu korxona uchun yuklangan fayllar hali mavjud emas.</p>
         ) : (
           <ul className="space-y-2">
             {rows.map((h) => (
               <li
                 key={`${h.reportId}-${h.storedName || h.fileName}`}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-[#0f172a] px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 bg-slate-50 dark:border-white/10 dark:bg-[#0f172a] px-3 py-2"
               >
                 <div>
-                  <div className="text-xs text-white">{h.fileName}</div>
-                  <div className="text-[10px] text-slate-500">Hisobot davri: {h.periodLabel}</div>
+                  <div className="text-xs text-slate-900 dark:text-white">{h.fileName}</div>
+                  <div className="text-[10px] text-slate-600 dark:text-slate-500">Hisobot davri: {h.periodLabel}</div>
                 </div>
                 <button
                   type="button"
                   onClick={() => downloadFile(h.reportId, h)}
-                  className="shrink-0 rounded-md bg-cyan-500/20 px-2 py-1 text-[11px] text-cyan-300 hover:bg-cyan-500/30"
+                  className="shrink-0 rounded-md bg-cyan-100 px-2 py-1 text-[11px] text-cyan-800 hover:bg-cyan-200 dark:bg-cyan-500/20 dark:text-cyan-300 dark:hover:bg-cyan-500/30"
                 >
                   Yuklab olish
                 </button>
@@ -405,13 +420,13 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
       </div>
 
       <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-[#111827] p-4">
+        <div className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827] p-4">
           <ToifaInfografika />
         </div>
-        <div className="rounded-2xl border border-white/10 bg-[#111827]">
-          <div className="border-b border-white/10 px-4 py-3">
-            <div className="text-xs font-semibold">Dinamika (namuna statistika)</div>
-            <div className="text-[11px] text-[#7a8eaa]">Obyektlar va qiymat</div>
+        <div className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827]">
+          <div className="border-b border-slate-200 dark:border-white/10 px-4 py-3">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">Dinamika (namuna statistika)</div>
+            <div className="text-[11px] text-slate-600 dark:text-[#7a8eaa]">Obyektlar va qiymat</div>
           </div>
           <div className="h-52 p-4">
             <BarChart />
@@ -420,14 +435,14 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
       </div>
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-[#111827]">
-          <div className="border-b border-white/10 px-4 py-3">
-            <div className="text-xs font-semibold">Faol qurilish obyektlari (smeta / haqiqiy)</div>
-            <div className="text-[10px] text-[#7a8eaa]">Ma’lumotlar bazadan: loyiha smetasi va korxona hisoboti</div>
+        <div className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827]">
+          <div className="border-b border-slate-200 dark:border-white/10 px-4 py-3">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">Faol qurilish obyektlari (smeta / haqiqiy)</div>
+            <div className="text-[10px] text-slate-600 dark:text-[#7a8eaa]">Ma’lumotlar bazadan: loyiha smetasi va korxona hisoboti</div>
           </div>
           <div>
             {sortedProjects.length === 0 ? (
-              <p className="p-4 text-sm text-[#7a8eaa]">Hozircha smeta/loyiha yozuvlari yo‘q.</p>
+              <p className="p-4 text-sm text-slate-600 dark:text-[#7a8eaa]">Hozircha smeta/loyiha yozuvlari yo‘q.</p>
             ) : (
               sortedProjects.map((project) => {
                 const report = latestReportForCompany(reports, project.companyUserId);
@@ -438,10 +453,10 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
                 const dX = diffVal(Number(project.smetaEmployeeCount), Number(report?.employeeCount ?? project.smetaEmployeeCount));
                 const { holat, holatTxt, progress } = holatFromProjectReport(project, report);
                 return (
-                  <div key={project._id} className="cursor-pointer border-b border-white/10 p-3 hover:bg-[#1a2438]">
+                  <div key={project._id} className="cursor-pointer border-b border-slate-200 dark:border-white/10 p-3 hover:bg-slate-50 dark:hover:bg-[#1a2438]">
                     <div className="mb-1 flex flex-wrap items-start justify-between gap-2">
                       <div>
-                        <div className="text-xs font-medium text-white">{project.title}</div>
+                        <div className="text-xs font-medium text-slate-900 dark:text-white">{project.title}</div>
                         <button
                           type="button"
                           onClick={() => openCompany(project.companyUserId)}
@@ -453,7 +468,7 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
                       </div>
                       <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${getBadgeClass(holat)}`}>{holatTxt}</span>
                     </div>
-                    <div className="flex flex-wrap gap-3 text-[10px] text-[#7a8eaa]">
+                    <div className="flex flex-wrap gap-3 text-[10px] text-slate-600 dark:text-[#7a8eaa]">
                       <span>
                         Shartnoma: smeta {fmtNum(project.smetaContractSum)} / haqiqiy {fmtNum(report?.contractAmount)}{' '}
                         / tafovut{' '}
@@ -477,7 +492,7 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
                         </b>
                       </span>
                     </div>
-                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#1a2438]">
+                    <div className="mt-2 h-1 overflow-hidden rounded-full bg-slate-100 dark:bg-[#1a2438]">
                       <div
                         className="h-full rounded-full"
                         style={{
@@ -492,23 +507,23 @@ const DashboardPage = ({ summary, projects, reports, alerts, companyById, onOpen
             )}
           </div>
         </div>
-        <div className="rounded-2xl border border-white/10 bg-[#111827]">
-          <div className="border-b border-white/10 px-4 py-3">
-            <div className="text-xs font-semibold">Ogohlantirishlar</div>
-            <div className="text-[10px] text-[#7a8eaa]">Serverdagi signal va qoidalar natijasi</div>
+        <div className="rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827]">
+          <div className="border-b border-slate-200 dark:border-white/10 px-4 py-3">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100">Ogohlantirishlar</div>
+            <div className="text-[10px] text-slate-600 dark:text-[#7a8eaa]">Serverdagi signal va qoidalar natijasi</div>
           </div>
           <div>
             {alertRows.length === 0 ? (
-              <p className="p-4 text-sm text-[#7a8eaa]">Hozircha ogohlantirish yo‘q.</p>
+              <p className="p-4 text-sm text-slate-600 dark:text-[#7a8eaa]">Hozircha ogohlantirish yo‘q.</p>
             ) : (
               alertRows.map((a, idx) => (
-                <div key={idx} className="flex gap-2 border-b border-white/10 p-3">
+                <div key={idx} className="flex gap-2 border-b border-slate-200 dark:border-white/10 p-3">
                   <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: a.color }} />
                   <div className="flex-1">
-                    <div className="text-xs text-white">{a.text}</div>
-                    <div className="text-[11px] text-[#7a8eaa]">{a.sub}</div>
+                    <div className="text-xs text-slate-900 dark:text-white">{a.text}</div>
+                    <div className="text-[11px] text-slate-600 dark:text-[#7a8eaa]">{a.sub}</div>
                   </div>
-                  <div className="text-[11px] text-[#3d4f6a]">{a.time}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-[#3d4f6a]">{a.time}</div>
                 </div>
               ))
             )}
@@ -546,11 +561,11 @@ const ObjectsPage = ({ projects, reports, companyById, onOpenKorxona }) => {
         <input
           type="search"
           placeholder="Obyekt nomi, korxona yoki qurilish turi"
-          className="w-full max-w-xl rounded-lg border border-white/10 bg-[#1a2438] px-3 py-2 text-sm text-white placeholder:text-[#3d4f6a] outline-none focus:border-cyan-400"
+          className="w-full max-w-xl rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-[#1a2438] dark:text-white dark:placeholder:text-slate-500 dark:text-[#3d4f6a] dark:focus:border-cyan-400"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-        <p className="mt-2 text-[11px] leading-relaxed text-[#7a8eaa]">
+        <p className="mt-2 text-[11px] leading-relaxed text-slate-600 dark:text-[#7a8eaa]">
           Ro‘yxat bazadagi loyiha smetasi va korxonaning oxirgi hisobotidan olinadi.
         </p>
       </div>
@@ -561,7 +576,9 @@ const ObjectsPage = ({ projects, reports, companyById, onOpenKorxona }) => {
             type="button"
             onClick={() => setFilter(f)}
             className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
-              filter === f ? 'border-cyan-400 bg-cyan-500/10 text-cyan-400' : 'border-white/10 text-[#7a8eaa] hover:border-cyan-400/50'
+              filter === f
+                ? 'border-cyan-500 bg-cyan-50 text-cyan-800 dark:border-cyan-400 dark:bg-cyan-500/10 dark:text-cyan-400'
+                : 'border-slate-200 text-slate-600 hover:border-cyan-400/50 dark:border-white/10 dark:text-[#7a8eaa]'
             }`}
           >
             {f === 'all'
@@ -578,29 +595,29 @@ const ObjectsPage = ({ projects, reports, companyById, onOpenKorxona }) => {
           </button>
         ))}
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#111827]">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827]">
         <table className="w-full min-w-[1100px] text-left text-xs">
           <thead>
-            <tr className="border-b border-white/10 bg-[#1a2438]">
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Obyekt</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Turi</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Korxona</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Shartnoma smeta</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Haqiqiy</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Tafovut</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">IH fondi smeta</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">IH haqiqiy</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">IH tafovut</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Ishchilar smeta</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Haqiqiy</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Tafovut</th>
-              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Holat</th>
+            <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#1a2438]">
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Obyekt</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Turi</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Korxona</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Shartnoma smeta</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Haqiqiy</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Tafovut</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">IH fondi smeta</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">IH haqiqiy</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">IH tafovut</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Ishchilar smeta</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Haqiqiy</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Tafovut</th>
+              <th className="px-2 py-2 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Holat</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={13} className="px-4 py-8 text-center text-[#7a8eaa]">
+                <td colSpan={13} className="px-4 py-8 text-center text-slate-600 dark:text-[#7a8eaa]">
                   Ma’lumot topilmadi yoki hali loyiha kiritilmagan.
                 </td>
               </tr>
@@ -612,8 +629,8 @@ const ObjectsPage = ({ projects, reports, companyById, onOpenKorxona }) => {
                 const { holat, holatTxt } = holatFromProjectReport(o, report);
                 const label = company?.organizationName || company?.email || '—';
                 return (
-                  <tr key={o._id} className="border-b border-white/10 hover:bg-[#1a2438]">
-                    <td className="px-2 py-2 font-medium text-white">{o.title}</td>
+                  <tr key={o._id} className="border-b border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#1a2438]">
+                    <td className="px-2 py-2 font-medium text-slate-900 dark:text-white">{o.title}</td>
                     <td className="px-2 py-2">
                       <span className={`rounded-full px-2 py-0.5 text-[10px] ${getBadgeClass('b-cyan')}`}>{toifa}</span>
                     </td>
@@ -716,40 +733,48 @@ const ComparisonPage = ({ reports, projects, companyById, compareId, setCompareI
 
   return (
     <div>
-      <div className="mb-4 flex w-fit gap-0.5 rounded-lg bg-[#1a2438] p-0.5">
+      <div className="mb-4 flex w-fit gap-0.5 rounded-lg bg-slate-100 dark:bg-[#1a2438] p-0.5">
         {['all', 'nomo', 'ok'].map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
-            className={`rounded-md px-4 py-1.5 text-xs font-medium ${tab === t ? 'bg-[#111827] text-white' : 'text-[#7a8eaa]'}`}
+            className={`rounded-md px-4 py-1.5 text-xs font-medium ${tab === t ? 'bg-slate-200 text-slate-900 dark:bg-[#111827] dark:text-white' : 'text-slate-600 dark:text-[#7a8eaa]'}`}
           >
             {t === 'all' ? 'Barchasi' : t === 'nomo' ? 'Nomuvofiqlar' : 'Muvofiq'}
           </button>
         ))}
       </div>
-      <div className="mb-6 rounded-2xl border border-white/10 bg-[#111827] p-4">
-        <h3 className="text-sm font-semibold text-white">Hisobot vs smeta (ID bo‘yicha)</h3>
+      <div className="mb-6 rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827] p-4">
+        <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Hisobot vs smeta (ID bo‘yicha)</h3>
         <div className="mt-2 flex flex-wrap gap-2">
           <input
             value={compareId}
             onChange={(e) => setCompareId(e.target.value)}
             placeholder="Hisobot ID"
-            className="min-w-[200px] flex-1 rounded-lg border border-white/10 bg-[#1a2438] px-3 py-2 text-sm text-white"
+            className="min-w-[200px] flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 dark:border-white/10 dark:bg-[#1a2438] dark:text-white"
           />
-          <button type="button" onClick={runCompare} className="rounded-lg bg-white/10 px-4 py-2 text-sm text-white hover:bg-white/15">
+          <button
+            type="button"
+            onClick={runCompare}
+            className="rounded-lg bg-slate-200 px-4 py-2 text-sm text-slate-900 hover:bg-slate-300 dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
+          >
             Taqqoslash
           </button>
         </div>
         {compareResult && (
-          <div className="mt-3 rounded-lg bg-black/30 p-3 text-sm text-slate-300">
+          <div className="mt-3 rounded-lg bg-slate-100 p-3 text-sm text-slate-800 dark:bg-black/30 dark:text-slate-300">
             {compareResult.diff ? (
               <>
                 <p>
-                  Xodimlar tafovuti: <span className="text-white">{compareResult.diff.employeeDelta}</span>
+                  Xodimlar tafovuti:{' '}
+                  <span className="font-medium text-slate-900 dark:text-white">{compareResult.diff.employeeDelta}</span>
                 </p>
                 <p>
-                  Shartnoma tafovuti: <span className="text-white">{compareResult.diff.contractDelta?.toLocaleString?.()}</span>
+                  Shartnoma tafovuti:{' '}
+                  <span className="font-medium text-slate-900 dark:text-white">
+                    {compareResult.diff.contractDelta?.toLocaleString?.()}
+                  </span>
                 </p>
               </>
             ) : (
@@ -758,10 +783,10 @@ const ComparisonPage = ({ reports, projects, companyById, compareId, setCompareI
           </div>
         )}
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full min-w-[900px] text-xs">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-transparent">
+        <table className="w-full min-w-[900px] text-xs text-slate-700 dark:text-slate-300">
           <thead>
-            <tr className="border-b border-white/10 bg-[#1a2438] text-left text-[10px] uppercase tracking-wider text-[#3d4f6a]">
+            <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#1a2438] text-left text-[10px] uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">
               <th className="px-3 py-2">Obyekt</th>
               <th className="px-3 py-2">Korxona</th>
               <th className="px-3 py-2">Shartnoma smeta</th>
@@ -779,7 +804,7 @@ const ComparisonPage = ({ reports, projects, companyById, compareId, setCompareI
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={12} className="px-4 py-6 text-center text-[#7a8eaa]">
+                <td colSpan={12} className="px-4 py-6 text-center text-slate-600 dark:text-[#7a8eaa]">
                   Hisobotlar yo‘q — korxonalar muddatli hisobot yuborganidan keyin jadval to‘ladi.
                 </td>
               </tr>
@@ -787,9 +812,9 @@ const ComparisonPage = ({ reports, projects, companyById, compareId, setCompareI
               filtered.map((t) => {
                 if (t.smeta == null) {
                   return (
-                    <tr key={t.key} className="border-b border-white/10 hover:bg-[#1a2438]">
-                      <td className="px-3 py-2 font-medium text-white">{t.name}</td>
-                      <td className="px-3 py-2 text-[#7a8eaa]">{t.pudratchi}</td>
+                    <tr key={t.key} className="border-b border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#1a2438]">
+                      <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">{t.name}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-[#7a8eaa]">{t.pudratchi}</td>
                       <td className="px-3 py-2">—</td>
                       <td className="px-3 py-2">{fmtNum(t.haqiqiy)}</td>
                       <td className="px-3 py-2">—</td>
@@ -809,9 +834,9 @@ const ComparisonPage = ({ reports, projects, companyById, compareId, setCompareI
                 const dIh = t.dIh;
                 const dX = t.dX;
                 return (
-                  <tr key={t.key} className="border-b border-white/10 hover:bg-[#1a2438]">
-                    <td className="px-3 py-2 font-medium text-white">{t.name}</td>
-                    <td className="px-3 py-2 text-[#7a8eaa]">{t.pudratchi}</td>
+                  <tr key={t.key} className="border-b border-slate-200 dark:border-white/10 hover:bg-slate-50 dark:hover:bg-[#1a2438]">
+                    <td className="px-3 py-2 font-medium text-slate-900 dark:text-white">{t.name}</td>
+                    <td className="px-3 py-2 text-slate-600 dark:text-[#7a8eaa]">{t.pudratchi}</td>
                     <td className="px-3 py-2">{fmtNum(t.smeta)}</td>
                     <td className="px-3 py-2">{fmtNum(t.haqiqiy)}</td>
                     <td className={`px-3 py-2 font-medium ${dS.d > 0 ? 'text-red-400' : 'text-emerald-400'}`}>
@@ -846,26 +871,26 @@ const ComparisonPage = ({ reports, projects, companyById, compareId, setCompareI
 
 const ReportsPage = ({ reports, companyById, downloadPdf, onOpenKorxona }) => (
   <div>
-    <p className="mb-3 text-[11px] text-[#7a8eaa]">
+    <p className="mb-3 text-[11px] text-slate-600 dark:text-[#7a8eaa]">
       Korxona ustiga bosing — yuklangan hisob-faktura va ilovalarni ko‘rish/yuklab olish.
     </p>
-    <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#111827]">
+    <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827]">
       <table className="w-full text-xs">
         <thead>
-          <tr className="border-b border-white/10 bg-[#1a2438]">
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Korxona</th>
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Davr</th>
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Xodimlar</th>
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">IH fondi</th>
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Shartnoma</th>
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">Qurilish turi</th>
-            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-[#3d4f6a]">PDF</th>
+          <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#1a2438]">
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Korxona</th>
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Davr</th>
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Xodimlar</th>
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">IH fondi</th>
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Shartnoma</th>
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">Qurilish turi</th>
+            <th className="px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">PDF</th>
           </tr>
         </thead>
         <tbody>
           {reports.length === 0 ? (
             <tr>
-              <td colSpan={7} className="px-4 py-8 text-center text-[#7a8eaa]">
+              <td colSpan={7} className="px-4 py-8 text-center text-slate-600 dark:text-[#7a8eaa]">
                 Hali korxonalardan hisobot kelib tushmagan.
               </td>
             </tr>
@@ -874,8 +899,8 @@ const ReportsPage = ({ reports, companyById, downloadPdf, onOpenKorxona }) => (
               const c = companyById.get(String(r.companyUserId));
               const name = c?.organizationName || c?.email || String(r.companyUserId);
               return (
-                <tr key={r._id} className="border-b border-white/10">
-                  <td className="px-3 py-2 text-white">
+                <tr key={r._id} className="border-b border-slate-200 dark:border-white/10">
+                  <td className="px-3 py-2 text-slate-900 dark:text-white">
                     <button
                       type="button"
                       onClick={() =>
@@ -889,7 +914,7 @@ const ReportsPage = ({ reports, companyById, downloadPdf, onOpenKorxona }) => (
                       {name}
                     </button>
                   </td>
-                  <td className="px-3 py-2 text-[#7a8eaa]">
+                  <td className="px-3 py-2 text-slate-600 dark:text-[#7a8eaa]">
                     {r.periodMonth}/{r.periodYear}
                   </td>
                   <td className="px-3 py-2">{r.employeeCount ?? '—'}</td>
@@ -929,6 +954,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
   const [loading, setLoading] = useState(true);
   const [fioInputs, setFioInputs] = useState({});
   const [busyId, setBusyId] = useState(null);
+  const [detailApp, setDetailApp] = useState(null);
 
   const load = async () => {
     try {
@@ -1014,7 +1040,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
   };
 
   if (loading) {
-    return <p className="text-sm text-[#7a8eaa]">Yuklanmoqda…</p>;
+    return <p className="text-sm text-slate-600 dark:text-[#7a8eaa]">Yuklanmoqda…</p>;
   }
 
   return (
@@ -1023,11 +1049,12 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
         Kelib tushgan ariza bo‘yicha faqat <strong>{ORG_SHORT}</strong> tasdiqlashi mumkin. Obyektga biriktirilgan{' '}
         <strong>{ORG_SHORT}</strong> xodimi quyidagi ro‘yxatdan tanlanadi; qo‘lda yozilmaydi.
       </div>
-      <div className="overflow-x-auto rounded-2xl border border-white/10 bg-[#111827]">
+      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827]">
         <table className="w-full min-w-[900px] text-sm">
           <thead>
-            <tr className="border-b border-white/10 bg-[#1a2438] text-left text-[10px] uppercase tracking-wider text-[#3d4f6a]">
+            <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#1a2438] text-left text-[10px] uppercase tracking-wider text-slate-500 dark:text-[#3d4f6a]">
               <th className="px-3 py-2">Obyekt</th>
+              <th className="px-3 py-2">Ro‘yxat jadvallari</th>
               {isGasn && <th className="px-3 py-2">Korxona</th>}
               {isGasn && <th className="px-3 py-2">Biriktirilgan fayllar</th>}
               <th className="px-3 py-2">Sana</th>
@@ -1041,7 +1068,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
           <tbody>
             {visibleApps.length === 0 ? (
               <tr>
-                <td colSpan={isGasn ? 9 : 5} className="px-4 py-8 text-center text-[#7a8eaa]">
+                <td colSpan={isGasn ? 10 : 6} className="px-4 py-8 text-center text-slate-600 dark:text-[#7a8eaa]">
                   Hozircha ariza yo‘q.
                 </td>
               </tr>
@@ -1053,15 +1080,24 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                   : '—';
                 const att = app.attachments || [];
                 return (
-                  <tr key={app._id} className="border-b border-white/10">
-                    <td className="px-3 py-2 text-white">{app.objectName}</td>
+                  <tr key={app._id} className="border-b border-slate-200 dark:border-white/10">
+                    <td className="px-3 py-2 text-slate-900 dark:text-white">{app.objectName}</td>
+                    <td className="px-3 py-2">
+                      <button
+                        type="button"
+                        className="rounded bg-white/10 px-2 py-1 text-[11px] text-cyan-300 hover:bg-white/15"
+                        onClick={() => setDetailApp(app)}
+                      >
+                        Ko‘rish
+                      </button>
+                    </td>
                     {isGasn && (
-                      <td className="px-3 py-2 text-[#7a8eaa]">{app.organizationName || app.companyEmail || '—'}</td>
+                      <td className="px-3 py-2 text-slate-600 dark:text-[#7a8eaa]">{app.organizationName || app.companyEmail || '—'}</td>
                     )}
                     {isGasn && (
                       <td className="max-w-[200px] px-3 py-2 align-top text-[11px] text-[#a1a1aa]">
                         {att.length === 0 ? (
-                          <span className="text-[#3d4f6a]">—</span>
+                          <span className="text-slate-500 dark:text-[#3d4f6a]">—</span>
                         ) : (
                           <ul className="list-none space-y-1 p-0">
                             {att.map((a, idx) => (
@@ -1080,7 +1116,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                                   {a.fileName}
                                 </button>
                                 {a.step ? (
-                                  <span className="text-[#3d4f6a]"> · {a.step}-bosqich</span>
+                                  <span className="text-slate-500 dark:text-[#3d4f6a]"> · {a.step}-bosqich</span>
                                 ) : null}
                               </li>
                             ))}
@@ -1088,7 +1124,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                         )}
                       </td>
                     )}
-                    <td className="px-3 py-2 text-[#7a8eaa]">{dateStr}</td>
+                    <td className="px-3 py-2 text-slate-600 dark:text-[#7a8eaa]">{dateStr}</td>
                     <td className="px-3 py-2">
                       <span className={st.cls}>{st.text}</span>
                     </td>
@@ -1097,7 +1133,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                       {isGasn ? (
                         <div className="flex flex-wrap items-center gap-1">
                           <select
-                            className="max-w-[200px] rounded border border-white/10 bg-[#0f172a] px-2 py-1 text-xs text-white"
+                            className="max-w-[200px] rounded border border-white/10 bg-[#0f172a] px-2 py-1 text-xs text-slate-900 dark:text-white"
                             value={fioInputs[app._id] ?? app.gasnInspectorFio ?? ''}
                             onChange={(e) => setFio(app._id, e.target.value)}
                             disabled={app.status !== 'pending'}
@@ -1120,7 +1156,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                           </button>
                         </div>
                       ) : (
-                        <span className="text-[#3d4f6a]">—</span>
+                        <span className="text-slate-500 dark:text-[#3d4f6a]">—</span>
                       )}
                     </td>
                     {isGasn && (
@@ -1132,7 +1168,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                             disabled={
                               busyId === app._id || !(fioInputs[app._id] ?? app.gasnInspectorFio ?? '').trim()
                             }
-                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-white disabled:cursor-not-allowed disabled:opacity-40"
+                            className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-medium text-slate-900 dark:text-white disabled:cursor-not-allowed disabled:opacity-40"
                             title={
                               !(fioInputs[app._id] ?? app.gasnInspectorFio ?? '').trim()
                                 ? 'Avval F.I.Sh. kiriting yoki saqlang'
@@ -1142,7 +1178,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                             Tasdiqlash
                           </button>
                         ) : (
-                          <span className="text-[#3d4f6a]">—</span>
+                          <span className="text-slate-500 dark:text-[#3d4f6a]">—</span>
                         )}
                       </td>
                     )}
@@ -1158,7 +1194,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                             Rad etish
                           </button>
                         ) : (
-                          <span className="text-[#3d4f6a]">—</span>
+                          <span className="text-slate-500 dark:text-[#3d4f6a]">—</span>
                         )}
                       </td>
                     )}
@@ -1169,6 +1205,142 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
           </tbody>
         </table>
       </div>
+
+      {detailApp && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/65 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setDetailApp(null)}
+        >
+          <div
+            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-slate-200 bg-white dark:border-white/10 dark:bg-[#111827] p-5 text-sm text-slate-200 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white">Obyekt ro‘yxatga olish jadvallari</h3>
+                <p className="mt-1 text-xs text-slate-600 dark:text-[#7a8eaa]">{detailApp.objectName}</p>
+              </div>
+              <button
+                type="button"
+                className="rounded px-2 py-1 text-lg leading-none text-slate-400 hover:bg-white/10 hover:text-white"
+                onClick={() => setDetailApp(null)}
+                aria-label="Yopish"
+              >
+                ×
+              </button>
+            </div>
+
+            {!detailApp.registrationSummary ? (
+              <p className="text-amber-300/95">Bu arizada xulosa / ishlar hajmi jadvallari kiritilmagan (eski ariza).</p>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#3d4f6a]">Xulosa jadval (so‘m)</h4>
+                  <div className="overflow-x-auto rounded-lg border border-white/10">
+                    <table className="w-full min-w-[320px] text-xs">
+                      <tbody>
+                        {SUMMARY_FIELD_META.slice(0, 4).map((row, idx) => (
+                          <tr key={row.key} className="border-b border-slate-200 dark:border-white/10">
+                            <td className="px-2 py-1.5 text-slate-600 dark:text-[#7a8eaa]">{idx + 1}</td>
+                            <td className="px-2 py-1.5 text-slate-300">{row.label}</td>
+                            <td className="px-2 py-1.5 text-right text-slate-900 dark:text-white">
+                              {Number(detailApp.registrationSummary[row.key] ?? 0).toLocaleString('uz-UZ')}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="border-b border-slate-200 dark:border-white/10 bg-black/20">
+                          <td colSpan={2} className="px-2 py-1.5 font-medium text-slate-300">
+                            Jami (QQSsiz)
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-medium text-emerald-300">
+                            {(
+                              Number(detailApp.registrationSummary.materials ?? 0) +
+                              Number(detailApp.registrationSummary.equipment ?? 0) +
+                              Number(detailApp.registrationSummary.machinery ?? 0) +
+                              Number(detailApp.registrationSummary.wages ?? 0)
+                            ).toLocaleString('uz-UZ')}
+                          </td>
+                        </tr>
+                        {SUMMARY_FIELD_META.slice(4).map((row, idx) => (
+                          <tr key={row.key} className="border-b border-slate-200 dark:border-white/10">
+                            <td className="px-2 py-1.5 text-slate-600 dark:text-[#7a8eaa]">{idx + 5}</td>
+                            <td className="px-2 py-1.5 text-slate-300">{row.label}</td>
+                            <td className="px-2 py-1.5 text-right text-slate-900 dark:text-white">
+                              {Number(detailApp.registrationSummary[row.key] ?? 0).toLocaleString('uz-UZ')}
+                            </td>
+                          </tr>
+                        ))}
+                        <tr className="bg-black/25">
+                          <td colSpan={2} className="px-2 py-1.5 font-semibold text-slate-200">
+                            Jami qurilish-montaj
+                          </td>
+                          <td className="px-2 py-1.5 text-right font-semibold text-cyan-300">
+                            {(
+                              Number(detailApp.registrationSummary.materials ?? 0) +
+                              Number(detailApp.registrationSummary.equipment ?? 0) +
+                              Number(detailApp.registrationSummary.machinery ?? 0) +
+                              Number(detailApp.registrationSummary.wages ?? 0) +
+                              Number(detailApp.registrationSummary.otherExpenses ?? 0) +
+                              Number(detailApp.registrationSummary.vat ?? 0)
+                            ).toLocaleString('uz-UZ')}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="mt-2 text-[11px] text-slate-600 dark:text-[#7a8eaa]">
+                    Ishchi-xodimlar:{' '}
+                    <span className="text-slate-200">
+                      {detailApp.registrationEmployeeCount != null
+                        ? `${detailApp.registrationEmployeeCount} nafar`
+                        : '—'}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-[#3d4f6a]">Ishlar hajmlari</h4>
+                  <div className="overflow-x-auto rounded-lg border border-white/10">
+                    <table className="w-full min-w-[640px] text-[11px]">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-[#1a2438] text-left text-slate-500 dark:text-[#3d4f6a]">
+                          <th className="px-2 py-1.5">№</th>
+                          <th className="px-2 py-1.5">Komponent</th>
+                          <th className="px-2 py-1.5">O‘lchov</th>
+                          <th className="px-2 py-1.5 text-right">Hajm</th>
+                          <th className="px-2 py-1.5 text-right">Birlik narxi</th>
+                          <th className="px-2 py-1.5 text-right">Summa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(detailApp.workVolumes || []).map((row, i) => {
+                          const vol = Number(row.volume ?? 0);
+                          const pr = Number(row.pricePerUnit ?? 0);
+                          const sum = vol * pr;
+                          const label =
+                            row.labelUz || WORK_VOLUME_ROWS.find((w) => w.key === row.key)?.labelUz || row.key;
+                          return (
+                            <tr key={row.key || i} className="border-b border-slate-200 dark:border-white/10">
+                              <td className="px-2 py-1 text-slate-600 dark:text-[#7a8eaa]">{i + 1}</td>
+                              <td className="px-2 py-1 text-slate-300">{label}</td>
+                              <td className="px-2 py-1 text-[#a1a1aa]">{row.unit || '—'}</td>
+                              <td className="px-2 py-1 text-right text-slate-200">{vol.toLocaleString('uz-UZ')}</td>
+                              <td className="px-2 py-1 text-right text-slate-200">{pr.toLocaleString('uz-UZ')}</td>
+                              <td className="px-2 py-1 text-right text-slate-900 dark:text-white">{sum.toLocaleString('uz-UZ')}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1358,17 +1530,18 @@ export default function GasnDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b1120] text-[#e6edf8]">
+    <div className="min-h-screen bg-slate-100 text-slate-900 dark:bg-[#0b1120] dark:text-[#e6edf8]">
       <Sidebar activePage={activePage} setActivePage={(id) => goPage(id, null)} projectsCount={projects.length} />
       <KorxonaModal open={!!korxonaModal} onClose={() => setKorxonaModal(null)} modal={korxonaModal} reports={reports} />
 
       <div className="ml-0 flex flex-col sm:ml-56 lg:ml-60">
-        <div className="sticky top-0 z-40 flex h-auto min-h-14 flex-wrap items-center gap-2 border-b border-white/10 bg-[#111827] px-4 py-2 sm:px-6">
+        <div className="sticky top-0 z-40 flex h-auto min-h-14 flex-wrap items-center gap-2 border-b border-slate-200 bg-white/95 px-4 py-2 backdrop-blur dark:border-white/10 dark:bg-[#111827] sm:px-6">
           <div>
-            <div className="text-sm font-semibold">{pageTitles[activePage]}</div>
-            <div className="max-w-xl text-[10px] text-[#7a8eaa] sm:text-xs">{ORG_FULL_NAME}</div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">{pageTitles[activePage]}</div>
+            <div className="max-w-xl text-[10px] text-slate-600 sm:text-xs dark:text-[#7a8eaa]">{ORG_FULL_NAME}</div>
           </div>
-          <div className="ml-auto flex flex-wrap items-center gap-2 text-[10px] text-[#7a8eaa] sm:text-xs">
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-[10px] text-slate-600 sm:text-xs dark:text-[#7a8eaa]">
+            <ThemeToggle />
             <span>
               {new Date().toLocaleDateString('uz-UZ')} · {new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })}
             </span>

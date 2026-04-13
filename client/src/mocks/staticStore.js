@@ -112,6 +112,32 @@ export const gasnInspectors = [
   { id: 'g4', fio: 'Rahimov D.D.', position: 'Inspektor' },
 ];
 
+/** Namuna: obyekt ro'yxatga olish jadvallari (GASN ko‘rinishi uchun) */
+const demoRegPayload = {
+  registrationSummary: {
+    materials: 850000000,
+    equipment: 120000000,
+    machinery: 95000000,
+    wages: 210000000,
+    otherExpenses: 45000000,
+    vat: 180000000,
+  },
+  registrationEmployeeCount: 47,
+  workVolumes: [
+    { key: 'labor', labelUz: 'Mehnat (ish kuchi) xarajatlari', unit: 'soat', volume: 12000, pricePerUnit: 45000 },
+    { key: 'electricity', labelUz: 'Elektr energiyasi', unit: 'kVt·soat', volume: 8500, pricePerUnit: 950 },
+    { key: 'fuel_lubricants', labelUz: "Yoqilg‘i-moylash materiallari", unit: 'litr', volume: 2100, pricePerUnit: 12000 },
+    { key: 'metal', labelUz: 'Metall', unit: 't', volume: 42, pricePerUnit: 12500000 },
+    { key: 'cement', labelUz: 'Sement', unit: 't', volume: 180, pricePerUnit: 980000 },
+    { key: 'sand', labelUz: 'Qum', unit: 'm3', volume: 320, pricePerUnit: 85000 },
+    { key: 'precast_concrete', labelUz: "Yig‘ma temir-beton mahsulotlari", unit: 'm3', volume: 95, pricePerUnit: 420000 },
+    { key: 'wood', labelUz: 'Yog‘och materiallari (pilomaterial)', unit: 'm3', volume: 28, pricePerUnit: 2100000 },
+    { key: 'bricks', labelUz: "G‘isht (zavodlar)", unit: 'ming.dona', volume: 420, pricePerUnit: 480000 },
+    { key: 'other_materials', labelUz: 'Boshqa materiallar', unit: 'so‘m', volume: 1, pricePerUnit: 35000000 },
+    { key: 'risk_coefficient', labelUz: 'Tavakkalchilik koeffitsienti', unit: 'koef.', volume: 1, pricePerUnit: 1.08 },
+  ],
+};
+
 let applications = [
   {
     _id: '64app01b2c3d4e5f6a7b8c9a1',
@@ -120,6 +146,7 @@ let applications = [
     notes: '',
     status: 'pending',
     gasnInspectorFio: '',
+    ...demoRegPayload,
     attachments: [
       {
         _id: '64att01',
@@ -137,6 +164,7 @@ let applications = [
     notes: '',
     status: 'pending',
     gasnInspectorFio: 'Karimov A.A.',
+    ...demoRegPayload,
     attachments: [],
     createdAt: new Date('2025-03-26').toISOString(),
   },
@@ -148,6 +176,7 @@ let applications = [
     status: 'approved',
     gasnInspectorFio: 'Tursunov B.B.',
     reviewedByUserId: gasnId,
+    ...demoRegPayload,
     attachments: [],
     createdAt: new Date('2025-03-20').toISOString(),
   },

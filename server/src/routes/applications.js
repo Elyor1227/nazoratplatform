@@ -5,6 +5,7 @@ import { Application, APPLICATION_STATUS } from '../models/Application.js';
 import { ROLES } from '../models/User.js';
 import { authRequired, loadUser, requireRoles } from '../middleware/auth.js';
 import { uploadInvoices as uploadFiles } from '../middleware/upload.js';
+import { parseRegistrationFromBody } from '../utils/objectRegistration.js';
 
 const router = Router();
 
@@ -49,6 +50,9 @@ router.get('/', async (req, res) => {
         status: a.status,
         gasnInspectorFio: a.gasnInspectorFio || '',
         attachments: a.attachments || [],
+        registrationSummary: a.registrationSummary || null,
+        registrationEmployeeCount: a.registrationEmployeeCount ?? null,
+        workVolumes: a.workVolumes || [],
         createdAt: a.createdAt,
         updatedAt: a.updatedAt,
       };
@@ -64,11 +68,16 @@ router.post('/', requireRoles(ROLES.CONSTRUCTION_COMPANY), async (req, res) => {
   if (objectName == null || !String(objectName).trim()) {
     return res.status(400).json({ error: 'objectName majburiy' });
   }
+  const parsed = parseRegistrationFromBody(req.body);
+  if (!parsed.ok) {
+    return res.status(400).json({ error: parsed.error });
+  }
   const application = await Application.create({
     companyUserId: req.user._id,
     objectName: String(objectName).trim(),
     notes: notes != null ? String(notes).trim() : '',
     status: APPLICATION_STATUS.PENDING,
+    ...parsed.payload,
   });
   res.status(201).json({ application });
 });

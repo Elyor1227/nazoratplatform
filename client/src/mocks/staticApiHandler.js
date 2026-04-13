@@ -367,6 +367,13 @@ export async function handleStaticRequest(method, url, data, config) {
       err.response = { status: 400, data: { error: err.message } };
       throw err;
     }
+    const { validateRegistrationForApi } = await import('../data/objectRegistrationSchema.js');
+    const parsed = validateRegistrationForApi(data || {});
+    if (!parsed.ok) {
+      const err = new Error(parsed.error);
+      err.response = { status: 400, data: { error: parsed.error } };
+      throw err;
+    }
     const application = {
       _id: randomId(),
       companyUserId: u.id,
@@ -375,6 +382,7 @@ export async function handleStaticRequest(method, url, data, config) {
       status: 'pending',
       gasnInspectorFio: '',
       attachments: [],
+      ...parsed.payload,
       createdAt: new Date().toISOString(),
     };
     pushApplication(application);
