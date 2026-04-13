@@ -1133,7 +1133,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                       {isGasn ? (
                         <div className="flex flex-wrap items-center gap-1">
                           <select
-                            className="max-w-[200px] rounded border border-white/10 bg-[#0f172a] px-2 py-1 text-xs text-slate-900 dark:text-white"
+                            className="max-w-[200px] rounded border border-slate-200 bg-white px-2 py-1 text-xs text-slate-900 shadow-sm dark:border-white/10 dark:bg-[#0f172a] dark:text-white dark:shadow-none"
                             value={fioInputs[app._id] ?? app.gasnInspectorFio ?? ''}
                             onChange={(e) => setFio(app._id, e.target.value)}
                             disabled={app.status !== 'pending'}
@@ -1150,7 +1150,7 @@ const ApplicationsPage = ({ onError, statusFilter }) => {
                             type="button"
                             onClick={() => assignFio(app._id)}
                             disabled={busyId === app._id || app.status !== 'pending'}
-                            className="rounded bg-white/10 px-2 py-1 text-[11px] text-white hover:bg-white/15 disabled:opacity-40"
+                            className="rounded border border-slate-200 bg-slate-100 px-2 py-1 text-[11px] text-slate-800 hover:bg-slate-200 disabled:opacity-40 dark:border-transparent dark:bg-white/10 dark:text-white dark:hover:bg-white/15"
                           >
                             Saqlash
                           </button>
